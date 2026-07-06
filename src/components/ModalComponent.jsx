@@ -9,11 +9,22 @@ export const style = {
   top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
-  minWidth: 250,
-  borderRadius: "1rem",
+  width: "90%",
+  maxWidth: "500px",
+  borderRadius: "12px",
   bgcolor: "#fff",
-  padding: "2rem",
+  padding: "3rem 2.5rem",
   textAlign: "center",
+  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
+  "@media (max-width: 600px)": {
+    padding: "2rem 1.5rem",
+    width: "95%",
+    borderRadius: "8px",
+  },
+  "@media (max-width: 400px)": {
+    padding: "1.5rem 1rem",
+    width: "98%",
+  },
 };
 
 export default function ModalComponent({
@@ -23,6 +34,12 @@ export default function ModalComponent({
   setTitle,
   addData,
 }) {
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && title.trim() !== "") {
+      addData();
+    }
+  };
+
   return (
     <div>
       <Modal
@@ -39,23 +56,57 @@ export default function ModalComponent({
           <CssTextField
             sx={{
               width: "100%",
+              marginBottom: "2.5rem",
+              "& .MuiOutlinedInput-root": {
+                fontSize: { xs: "0.95rem", sm: "1rem" },
+                padding: "12px 14px",
+                transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+                "&:hover fieldset": {
+                  borderColor: "#8a8a8a",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#4b5563",
+                  boxShadow: "0 0 0 2px rgba(75, 85, 99, 0.08)",
+                },
+              },
+              "& .MuiOutlinedInput-input::placeholder": {
+                opacity: 0.6,
+              },
             }}
-            label="Add Title"
+            label="Note Title"
             id="custom-css-outlined-input"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={handleKeyDown}
+            autoFocus
+            fullWidth
           />
 
           <Button
-            variant="outline"
+            variant="contained"
             sx={{
-              marginTop: "2rem",
-              paddingX: "4rem",
-              border: "2px solid gray",
+              width: "100%",
+              marginTop: "1rem",
+              paddingY: "0.95rem",
+              fontSize: { xs: "0.9rem", sm: "1rem" },
+              fontWeight: "600",
+              textTransform: "none",
+              backgroundColor: title.trim() === "" ? "#ccc" : "#4b5563",
+              color: "#fff",
+              border: "none",
+              borderRadius: "6px",
+              transition: "background-color 0.2s ease, box-shadow 0.2s ease",
+              cursor: title.trim() === "" ? "not-allowed" : "pointer",
+              "&:hover": {
+                backgroundColor: title.trim() === "" ? "#ccc" : "#374151",
+                boxShadow:
+                  title.trim() === "" ? "none" : "0 2px 6px rgba(0,0,0,0.12)",
+              },
             }}
             onClick={addData}
+            disabled={title.trim() === ""}
           >
-            Add
+            Create Note
           </Button>
         </Box>
       </Modal>
