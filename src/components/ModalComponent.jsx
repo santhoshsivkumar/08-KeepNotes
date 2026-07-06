@@ -1,7 +1,8 @@
 /* eslint-disable react/prop-types */
-import { Button } from "@mui/material";
+import { Button, IconButton } from "@mui/material";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
+import CloseIcon from "@mui/icons-material/Close";
 import CssTextField from "./CssTextField";
 
 export const style = {
@@ -52,7 +53,32 @@ export default function ModalComponent({
           transformStyle: "preserve-3d",
         }}
       >
-        <Box sx={style}>
+        <Box
+          sx={{
+            ...style,
+            position: "relative",
+          }}
+        >
+          <IconButton
+            onClick={handleClose}
+            sx={{
+              position: "absolute",
+              top: "0.75rem",
+              right: "0.75rem",
+              color: "#6b7280",
+              cursor: "pointer",
+              padding: "8px",
+              transition: "color 0.2s ease, background-color 0.2s ease",
+              "&:hover": {
+                color: "#1a1a1a",
+                backgroundColor: "rgba(0, 0, 0, 0.05)",
+              },
+            }}
+            aria-label="close"
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+
           <CssTextField
             sx={{
               width: "100%",

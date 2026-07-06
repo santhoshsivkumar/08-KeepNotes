@@ -1,11 +1,12 @@
 import Box from "@mui/material/Box";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
-import { TextField } from "@mui/material";
+import { TextField, IconButton } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import { collection, doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { database } from "../firebase/firebaseConfig";
 import Modal from "@mui/material/Modal";
+import CloseIcon from "@mui/icons-material/Close";
 
 const EditNote = (props) => {
   const [docsDescription, setDocsDescription] = useState("");
@@ -127,6 +128,30 @@ const EditNote = (props) => {
           },
         }}
       >
+        {/* Close Button */}
+        <IconButton
+          onClick={() => {
+            props.setOpenEditDocModel(false);
+            props.setActiveId(null);
+          }}
+          sx={{
+            position: "absolute",
+            top: "1rem",
+            right: "1rem",
+            color: "#6b7280",
+            cursor: "pointer",
+            padding: "8px",
+            transition: "color 0.2s ease, background-color 0.2s ease",
+            "&:hover": {
+              color: "#1a1a1a",
+              backgroundColor: "rgba(0, 0, 0, 0.05)",
+            },
+          }}
+          aria-label="close"
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+
         {/* Title Section */}
         <Box sx={{ marginBottom: "2rem" }}>
           <TextField
