@@ -300,7 +300,7 @@ const NotesHome = () => {
               const attCount   = (note.attachments || []).length;
               return (
                 <div key={note.id} className="group animate-fade-up">
-                  <div className={`relative h-[200px] flex flex-col justify-between rounded-xl border ${colors.border} ${colors.bg} shadow-card hover:shadow-card-hover transition-all duration-200 hover:-translate-y-0.5 cursor-pointer`}>
+                  <div className={`relative h-[240px] flex flex-col justify-between rounded-xl border ${colors.border} ${colors.bg} shadow-card hover:shadow-card-hover transition-all duration-200 hover:-translate-y-0.5 cursor-pointer`}>
 
                     {/* Cover image */}
                     {coverImg && (
@@ -319,7 +319,7 @@ const NotesHome = () => {
                       </h3>
                       {note.docsDesc ? (
                         <div
-                          className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed line-clamp-4 [&_p]:m-0 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-sm [&_ul]:pl-4 [&_ol]:pl-4 [&_img]:hidden"
+                          className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed line-clamp-7 [&_p]:m-0 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-sm [&_ul]:pl-4 [&_ol]:pl-4 [&_img]:hidden"
                           dangerouslySetInnerHTML={{ __html: note.docsDesc }}
                         />
                       ) : (
@@ -351,7 +351,7 @@ const NotesHome = () => {
                               deleteItem(note.id);
                             }}
                           >
-                            Confirm Delete?
+                            Click again to delete
                           </span>
                         )}
 

@@ -92,10 +92,37 @@ const EditNote = ({ id, onClose }) => {
   const [copiedText, setCopiedText]   = useState(false);
   const [windowDimensions, setWindowDimensions] = useState({ width: 880, height: 640 });
   const [isResizing, setIsResizing]   = useState(false);
-  const [zoomLevel, setZoomLevel]     = useState(100);
+  const [zoomLevel, setZoomLevelRaw]     = useState(() => {
+    const v = localStorage.getItem("kn_zoomLevel");
+    return v ? Number(v) : 100;
+  });
+  const setZoomLevel = (val) => {
+    const next = typeof val === "function" ? val(zoomLevel) : val;
+    setZoomLevelRaw(next);
+    localStorage.setItem("kn_zoomLevel", String(next));
+  };
+
   const [pasteMenuOpen, setPasteMenuOpen] = useState(false);
+
+  const [toolbarCollapsed, setToolbarCollapsedRaw] = useState(() =>
+    localStorage.getItem("kn_toolbarCollapsed") !== "false"
+  );
+  const setToolbarCollapsed = (val) => {
+    const next = typeof val === "function" ? val(toolbarCollapsed) : val;
+    setToolbarCollapsedRaw(next);
+    localStorage.setItem("kn_toolbarCollapsed", String(next));
+  };
+
   const [showAttachmentPanel, setShowAttachmentPanel] = useState(false);
-  const [pasteMode, setPasteMode]         = useState("formatted"); // "formatted" | "plain"
+
+  const [pasteMode, setPasteModeRaw] = useState(() =>
+    localStorage.getItem("kn_pasteMode") || "formatted"
+  );
+  const setPasteMode = (val) => {
+    setPasteModeRaw(val);
+    localStorage.setItem("kn_pasteMode", val);
+  };
+
   const [statusBarWidth, setStatusBarWidth] = useState(600);
 
   const isLoadedRef    = useRef(false);
@@ -571,7 +598,7 @@ const EditNote = ({ id, onClose }) => {
           {/* ── 3. Drag Zone & Main Text Editor Canvas ── */}
           <MediaDropzone onFiles={handleFiles} disabled={uploading}>
             <div className="flex-1 flex flex-col min-h-0 px-1 py-2">
-              <div className="relative flex-1 flex flex-col min-h-0 rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white/70 dark:bg-[#151720]/70 overflow-hidden shadow-sm">
+              <div className={`relative flex-1 flex flex-col min-h-0 rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white/70 dark:bg-[#151720]/70 overflow-hidden shadow-sm${toolbarCollapsed ? " quill-toolbar-collapsed" : ""}`}>
                 
                 {/* Integrated Tools on Far-Right of Quill Toolbar Ribbon */}
                 <div className="absolute top-1.5 right-2.5 z-30 flex items-center gap-1.5">
@@ -616,6 +643,19 @@ const EditNote = ({ id, onClose }) => {
                       </div>
                     )}
                   </div>
+
+                  {/* Toolbar Toggle Button (T) */}
+                  <button
+                    onClick={() => setToolbarCollapsed((v) => !v)}
+                    className={`p-1 w-[26px] h-[26px] flex items-center justify-center rounded-md border text-xs font-bold shadow-xs transition-all cursor-pointer ${
+                      toolbarCollapsed
+                        ? "bg-white dark:bg-[#222533] hover:bg-gray-100 dark:hover:bg-[#2a2e3f] text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/10"
+                        : "bg-brand-500 hover:bg-brand-600 text-white border-brand-500"
+                    }`}
+                    title={toolbarCollapsed ? "Show formatting toolbar" : "Hide formatting toolbar"}
+                  >
+                    T
+                  </button>
 
                   {/* Attach File Button */}
                   <button
@@ -669,7 +709,7 @@ const EditNote = ({ id, onClose }) => {
                   </button>
                 </div>
 
-                {/* Text Area (Takes 100% Full Height) */}
+                {/* Text Area (Takes 100% Full Height, flex-col so container scrolls) */}
                 <ReactQuill
                   ref={quillRef}
                   theme="snow"
@@ -683,7 +723,7 @@ const EditNote = ({ id, onClose }) => {
                   modules={quillModules}
                   formats={quillFormats}
                   placeholder="Start typing here…"
-                  className="flex-1 flex flex-col h-full"
+                  className="flex-1 flex flex-col min-h-0"
                 />
 
                 {/* Subtle Background Watermark / Placeholder Hint inside Text Area (Bottom-Left) */}

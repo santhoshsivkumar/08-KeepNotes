@@ -72,17 +72,17 @@ body {
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Quill Editor Styles */
-.ql-container.ql-snow {
-  border: none !important;
-  font-family: inherit !important;
-}
+/* Quill Editor Styles — container/border base */
+/* (flex layout, scroll, height rules are below in the "Smooth Editor" section) */
 
 .ql-toolbar.ql-snow {
   border: none !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
   background: rgba(0, 0, 0, 0.015);
   padding: 6px 8px !important;
+  padding-right: 240px !important;
+  position: relative !important;
+  flex-shrink: 0;
   transition: all 0.2s ease;
 }
 
@@ -91,23 +91,57 @@ body {
   background: rgba(255, 255, 255, 0.015);
 }
 
-/* Hide Quill toolbar when collapsed */
-.quill-toolbar-collapsed .ql-toolbar {
+/* Hide Quill toolbar when collapsed — keep the bar, hide only format groups */
+.quill-toolbar-collapsed .ql-toolbar .ql-formats {
   display: none !important;
 }
+/* Also hide the format picker (Normal / H1 / H2 dropdown) */
+.quill-toolbar-collapsed .ql-toolbar .ql-picker {
+  display: none !important;
+}
+/* Keep the bar at a consistent height even when all format groups are hidden */
+.quill-toolbar-collapsed .ql-toolbar.ql-snow {
+  min-height: 38px;
+}
 
-/* Smooth Editor Font Scaling via CSS variable */
-.ql-toolbar.ql-snow {
-  padding-right: 240px !important;
-  position: relative !important;
+/* Make .ql-container fill all remaining flex height and scroll inside */
+.ql-container.ql-snow {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  border: none !important;
+  font-family: inherit !important;
+  /* Custom thin scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120,120,120,0.25) transparent;
+}
+
+.ql-container.ql-snow::-webkit-scrollbar {
+  width: 5px;
+}
+.ql-container.ql-snow::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ql-container.ql-snow::-webkit-scrollbar-thumb {
+  background: rgba(120,120,120,0.2);
+  border-radius: 999px;
+}
+.ql-container.ql-snow::-webkit-scrollbar-thumb:hover {
+  background: rgba(120,120,120,0.4);
 }
 
 .ql-editor {
-  padding: 16px 20px !important;
-  min-height: 140px;
+  flex: 1 1 auto;
+  padding: 16px 20px 56px 20px !important; /* bottom pad so content never hides behind zoom pill */
+  min-height: 100%;
   font-size: calc(15px * var(--editor-zoom-scale, 1)) !important;
-  line-height: 1.65;
+  line-height: 1.7;
   transition: font-size 0.15s ease-in-out;
+  overflow: visible !important; /* let the container handle scroll */
+  box-sizing: border-box;
 }
 
 .ql-editor p, .ql-editor ol, .ql-editor ul, .ql-editor pre, .ql-editor blockquote, .ql-editor span, .ql-editor h1, .ql-editor h2, .ql-editor h3 {
@@ -122,6 +156,7 @@ body {
   color: #9ca3af !important;
   font-style: normal !important;
   left: 20px !important;
+  top: 16px !important;
 }
 
 .dark .ql-editor.ql-blank::before {
