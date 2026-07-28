@@ -300,12 +300,12 @@ const NotesHome = () => {
               const attCount   = (note.attachments || []).length;
               return (
                 <div key={note.id} className="group animate-fade-up">
-                  <div className={`relative min-h-[150px] flex flex-col justify-between rounded-xl border ${colors.border} ${colors.bg} shadow-card hover:shadow-card-hover transition-all duration-200 hover:-translate-y-0.5 cursor-pointer`}>
+                  <div className={`relative h-[200px] flex flex-col justify-between rounded-xl border ${colors.border} ${colors.bg} shadow-card hover:shadow-card-hover transition-all duration-200 hover:-translate-y-0.5 cursor-pointer`}>
 
                     {/* Cover image */}
                     {coverImg && (
                       <div
-                        className="w-full h-36 rounded-t-xl overflow-hidden cursor-pointer shrink-0"
+                        className="w-full h-24 rounded-t-xl overflow-hidden cursor-pointer shrink-0"
                         onClick={() => openNote(note.id)}
                       >
                         <img src={coverImg} alt="cover" className="w-full h-full object-cover" loading="lazy" />
@@ -313,20 +313,22 @@ const NotesHome = () => {
                     )}
 
                     {/* Card body */}
-                    <div className="p-4 pb-2 flex-1" onClick={() => openNote(note.id)}>
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-snug mb-2 pr-12 truncate">
+                    <div className="p-4 pb-2 flex-1 overflow-hidden" onClick={() => openNote(note.id)}>
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-snug mb-1 pr-4 truncate">
                         {note.title || "Untitled"}
                       </h3>
-                      {note.docsDesc && (
+                      {note.docsDesc ? (
                         <div
-                          className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed line-clamp-5 [&_p]:m-0 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-sm [&_ul]:pl-4 [&_ol]:pl-4 [&_img]:hidden"
+                          className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed line-clamp-4 [&_p]:m-0 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-sm [&_ul]:pl-4 [&_ol]:pl-4 [&_img]:hidden"
                           dangerouslySetInnerHTML={{ __html: note.docsDesc }}
                         />
+                      ) : (
+                        <p className="text-gray-400 dark:text-gray-600 text-xs italic mt-1">No additional text</p>
                       )}
                     </div>
 
-                    {/* Actions row */}
-                    <div className="px-4 py-2 flex items-center justify-between border-t border-black/[0.04] dark:border-white/[0.05] mt-1">
+                    {/* Actions row (Always Visible) */}
+                    <div className="px-4 py-2 flex items-center justify-between border-t border-black/[0.04] dark:border-white/[0.05] shrink-0">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-gray-300 dark:text-gray-600 font-medium">
                           {note.updatedAt?.toDate
@@ -339,7 +341,7 @@ const NotesHome = () => {
                           </span>
                         )}
                       </div>
-                      <div className={`flex items-center gap-1 transition-opacity duration-150 ${isDeletingInProgress || isDeleting || copiedNoteId === note.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+                      <div className="flex items-center gap-1 opacity-100">
                         {/* Delete Confirm inline pill */}
                         {isDeleting && !isDeletingInProgress && (
                           <span

@@ -4,14 +4,10 @@
 @tailwind utilities;
 
 /* ============================================================
-   KEEP NOTES — Design System
+   THOUGHTPAD — Design System
    Global CSS tokens, resets, typography, animations
-   (Google Fonts loaded via <link> in index.html)
    ============================================================ */
 
-/* ============================================================
-   COLOR TOKENS
-   ============================================================ */
 :root {
   /* Brand */
   --color-brand-primary:       hsl(250, 84%, 60%);
@@ -58,545 +54,95 @@
   --shadow-lg:   0 8px 32px hsla(230, 20%, 10%, 0.14);
   --shadow-xl:   0 16px 56px hsla(230, 20%, 10%, 0.18);
   --shadow-brand: 0 4px 20px var(--color-brand-primary-glow);
-
-  /* Radius */
-  --radius-xs:  4px;
-  --radius-sm:  8px;
-  --radius-md:  12px;
-  --radius-lg:  16px;
-  --radius-xl:  24px;
-  --radius-full: 9999px;
-
-  /* Spacing scale */
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-5:  20px;
-  --space-6:  24px;
-  --space-8:  32px;
-  --space-10: 40px;
-  --space-12: 48px;
-
-  /* Typography */
-  --font-sans:  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono:  'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-
-  --text-xs:   clamp(0.70rem, 1.5vw, 0.75rem);
-  --text-sm:   clamp(0.80rem, 1.8vw, 0.875rem);
-  --text-base: clamp(0.90rem, 2.0vw, 1rem);
-  --text-lg:   clamp(1.05rem, 2.2vw, 1.125rem);
-  --text-xl:   clamp(1.15rem, 2.5vw, 1.25rem);
-  --text-2xl:  clamp(1.30rem, 3vw,   1.5rem);
-  --text-3xl:  clamp(1.60rem, 4vw,   2rem);
-  --text-4xl:  clamp(2.00rem, 5vw,   2.5rem);
-
-  /* Transitions */
-  --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base:   250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow:   400ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-spring: 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
-
-  /* Z-index stack */
-  --z-base:    0;
-  --z-raised:  10;
-  --z-sticky:  100;
-  --z-overlay: 200;
-  --z-modal:   300;
-  --z-toast:   400;
 }
 
-/* ============================================================
-   DARK MODE — overrides applied when html.dark is set
-   ============================================================ */
-html.dark {
-  color-scheme: dark;
-}
-
-/* Dark Quill overrides */
-html.dark .ql-editor {
-  color: #e2e4ed !important;
-  background: transparent !important;
-}
-
-html.dark .ql-editor p,
-html.dark .ql-editor span,
-html.dark .ql-editor h1,
-html.dark .ql-editor h2,
-html.dark .ql-editor h3,
-html.dark .ql-editor li {
-  color: #e2e4ed !important;
-}
-
-html.dark .line-clamp-5,
-html.dark .line-clamp-5 p,
-html.dark .line-clamp-5 span,
-html.dark .line-clamp-5 h1,
-html.dark .line-clamp-5 h2,
-html.dark .line-clamp-5 h3,
-html.dark .line-clamp-5 li {
-  color: #9ca3af !important;
-}
-
-html.dark .ql-editor.ql-blank::before {
-  color: #4b4f5e !important;
-}
-
-html.dark .ql-toolbar.ql-snow {
-  border-color: rgba(255,255,255,0.06) !important;
-  background: rgba(255,255,255,0.03) !important;
-}
-
-html.dark .ql-container.ql-snow {
-  border-color: rgba(255,255,255,0.06) !important;
-}
-
-html.dark .ql-toolbar.ql-snow .ql-stroke { stroke: #9ca3af !important; }
-html.dark .ql-toolbar.ql-snow .ql-fill   { fill:   #9ca3af !important; }
-html.dark .ql-toolbar.ql-snow button:hover .ql-stroke { stroke: #a78bfa !important; }
-html.dark .ql-toolbar.ql-snow button:hover .ql-fill   { fill:   #a78bfa !important; }
-html.dark .ql-toolbar.ql-snow button.ql-active .ql-stroke { stroke: #a78bfa !important; }
-html.dark .ql-toolbar.ql-snow button.ql-active .ql-fill   { fill:   #a78bfa !important; }
-html.dark .ql-toolbar.ql-snow .ql-picker-label       { color: #9ca3af !important; }
-html.dark .ql-toolbar.ql-snow .ql-picker-options      { background: #1e2130 !important; border-color: rgba(255,255,255,0.08) !important; }
-html.dark .ql-toolbar.ql-snow .ql-picker-item         { color: #c9ccd8 !important; }
-html.dark .ql-toolbar.ql-snow .ql-picker-item:hover   { color: #a78bfa !important; }
-
-/* Dark note card color overrides */
-html.dark .note-card-yellow  { background-color: #2a2416 !important; border-color: #3d3412 !important; }
-html.dark .note-card-green   { background-color: #162418 !important; border-color: #1d3320 !important; }
-html.dark .note-card-blue    { background-color: #141b2a !important; border-color: #1a2540 !important; }
-html.dark .note-card-pink    { background-color: #261420 !important; border-color: #381830 !important; }
-html.dark .note-card-purple  { background-color: #1e1430 !important; border-color: #2c1a48 !important; }
-html.dark .note-card-orange  { background-color: #261a0e !important; border-color: #382210 !important; }
-html.dark .note-card-teal    { background-color: #0e2420 !important; border-color: #123028 !important; }
-
-/* Dark scrollbar */
-html.dark ::-webkit-scrollbar-thumb { background: #374151; }
-html.dark ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
-
-
-/* ============================================================
-   GLOBAL RESET & THEME BASE
-   ============================================================ */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
+/* Base resets & typography */
 html {
-  font-size: 16px;
-  -webkit-text-size-adjust: 100%;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   scroll-behavior: smooth;
-  color-scheme: light;
-}
-
-html.dark {
-  color-scheme: dark;
-}
-
-html, body {
-  min-height: 100vh;
-  background-color: #f9fafb !important;
-  color: #111827;
-  transition: background-color 250ms ease, color 250ms ease;
-}
-
-html.dark, html.dark body {
-  background-color: #111318 !important;
-  color: #f9fafb;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
-}
-
-#root {
-  min-height: 100vh;
-}
-
-/* Typography */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-sans);
-  font-weight: 700;
-  line-height: 1.25;
+  background-color: var(--surface-bg);
   color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-p { line-height: 1.7; }
-
-a {
-  color: var(--color-brand-primary);
-  text-decoration: none;
-  transition: color var(--transition-fast);
-}
-a:hover { color: var(--color-brand-primary-hover); }
-
-img, video { max-width: 100%; display: block; }
-
-button, input, textarea, select {
-  font-family: inherit;
-  font-size: inherit;
+/* Quill Editor Styles */
+.ql-container.ql-snow {
+  border: none !important;
+  font-family: inherit !important;
 }
 
-/* ============================================================
-   CUSTOM SCROLLBAR
-   ============================================================ */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: var(--radius-full);
-  transition: background var(--transition-fast);
-}
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-
-/* Firefox */
-* { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
-
-/* ============================================================
-   TEXT SELECTION
-   ============================================================ */
-::selection {
-  background: var(--color-brand-primary-light);
-  color: var(--color-brand-primary-hover);
+.ql-toolbar.ql-snow {
+  border: none !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+  background: rgba(0, 0, 0, 0.015);
+  padding: 6px 8px !important;
+  transition: all 0.2s ease;
 }
 
-/* ============================================================
-   FOCUS RING (accessibility)
-   ============================================================ */
-:focus-visible {
-  outline: 2px solid var(--color-brand-primary);
-  outline-offset: 2px;
-  border-radius: var(--radius-xs);
+.dark .ql-toolbar.ql-snow {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  background: rgba(255, 255, 255, 0.015);
 }
 
-/* ============================================================
-   ANIMATIONS & KEYFRAMES
-   ============================================================ */
+/* Hide Quill toolbar when collapsed */
+.quill-toolbar-collapsed .ql-toolbar {
+  display: none !important;
+}
+
+/* Smooth Editor Font Scaling via CSS variable */
+.ql-toolbar.ql-snow {
+  padding-right: 240px !important;
+  position: relative !important;
+}
+
+.ql-editor {
+  padding: 16px 20px !important;
+  min-height: 140px;
+  font-size: calc(15px * var(--editor-zoom-scale, 1)) !important;
+  line-height: 1.65;
+  transition: font-size 0.15s ease-in-out;
+}
+
+.ql-editor p, .ql-editor ol, .ql-editor ul, .ql-editor pre, .ql-editor blockquote, .ql-editor span, .ql-editor h1, .ql-editor h2, .ql-editor h3 {
+  font-size: inherit !important;
+}
+
+.dark .ql-editor {
+  color: #f3f4f6;
+}
+
+.ql-editor.ql-blank::before {
+  color: #9ca3af !important;
+  font-style: normal !important;
+  left: 20px !important;
+}
+
+.dark .ql-editor.ql-blank::before {
+  color: #6b7280 !important;
+}
+
+/* Animations */
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideInDown {
-  from { opacity: 0; transform: translateY(-20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.92); }
+  from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(40px); }
-  to   { opacity: 1; transform: translateY(0); }
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
 }
 
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-@keyframes bounceIn {
-  0%   { opacity: 0; transform: scale(0.3); }
-  50%  { opacity: 1; transform: scale(1.05); }
-  70%  { transform: scale(0.9); }
-  100% { transform: scale(1); }
-}
-
-@keyframes dropzonePulse {
-  0%, 100% { border-color: var(--color-brand-primary); box-shadow: 0 0 0 0 var(--color-brand-primary-glow); }
-  50%       { border-color: var(--color-brand-primary-hover); box-shadow: 0 0 0 8px transparent; }
-}
-
-/* ============================================================
-   UTILITY CLASSES
-   ============================================================ */
-
-/* Animation utilities */
-.animate-fadeIn    { animation: fadeIn    var(--transition-base) both; }
-.animate-fadeInUp  { animation: fadeInUp  var(--transition-base) both; }
-.animate-scaleIn   { animation: scaleIn   var(--transition-spring) both; }
-.animate-slideUp   { animation: slideUp   var(--transition-slow) both; }
-.animate-slideDown { animation: slideInDown var(--transition-base) both; }
-
-/* Skeleton loading */
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    #e5e7eb 25%,
-    #f3f4f6 50%,
-    #e5e7eb 75%
-  );
-  background-size: 400px 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
-  border-radius: 0.5rem;
-}
-
-html.dark .skeleton {
-  background: linear-gradient(
-    90deg,
-    #1e2230 25%,
-    #292d40 50%,
-    #1e2230 75%
-  );
-  background-size: 400px 100%;
-}
-
-/* Glassmorphism */
-.glass {
-  background: hsla(0, 0%, 100%, 0.72);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid hsla(0, 0%, 100%, 0.3);
-}
-
-/* Truncate text */
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.line-clamp-5 {
-  display: -webkit-box;
-  -webkit-line-clamp: 5;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* ============================================================
-   QUILL EDITOR — Modern Teams / Outlook / Notion Toolbar & Code
-   ============================================================ */
-.ql-toolbar.ql-snow + .ql-container.ql-snow {
-  border-top: 0;
-}
-
-/* Make Quill fill its flex container */
-.quill {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.ql-container {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  font-family: 'Inter', -apple-system, sans-serif !important;
-}
-
-.ql-editor {
-  flex: 1;
-  overflow-y: auto;
-  font-family: 'Inter', -apple-system, sans-serif !important;
-  font-size: 0.9375rem !important;
-  line-height: 1.75 !important;
-  color: #1f2937 !important;
-  padding: 16px 20px !important;
-  min-height: 240px;
-}
-
-.ql-editor.ql-blank::before {
-  font-style: normal !important;
-  color: #9ca3af !important;
-  left: 20px !important;
-  font-size: 0.9375rem !important;
-}
-
-.ql-container.ql-snow {
-  border: none !important;
-}
-
-/* Modern Teams / Outlook Ribbon Toolbar */
-.ql-toolbar.ql-snow {
-  border: none !important;
-  border-bottom: 1px solid rgba(0,0,0,0.08) !important;
-  background: rgba(249, 250, 251, 0.9);
-  padding: 8px 12px !important;
-  flex-shrink: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px;
-}
-
-html.dark .ql-toolbar.ql-snow {
-  border-bottom-color: rgba(255,255,255,0.08) !important;
-  background: rgba(24, 27, 38, 0.9);
-}
-
-.ql-toolbar.ql-snow .ql-formats {
-  margin-right: 8px !important;
-  padding-right: 8px;
-  border-right: 1px solid rgba(0,0,0,0.08);
-  display: flex;
-  align-items: center;
-}
-
-html.dark .ql-toolbar.ql-snow .ql-formats {
-  border-right-color: rgba(255,255,255,0.08);
-}
-
-/* Toolbar button shapes */
-.ql-toolbar.ql-snow button {
-  border-radius: 6px !important;
-  padding: 4px 6px !important;
-  height: 28px !important;
-  width: 28px !important;
-  transition: all 150ms ease !important;
-}
-
-.ql-toolbar.ql-snow button:hover {
-  background: rgba(124, 58, 237, 0.1) !important;
-}
-
-.ql-toolbar.ql-snow button.ql-active {
-  background: rgba(124, 58, 237, 0.18) !important;
-}
-
-/* Toolbar icons */
-.ql-toolbar.ql-snow .ql-stroke { stroke: #4b5563 !important; stroke-width: 1.8 !important; }
-.ql-toolbar.ql-snow .ql-fill   { fill:   #4b5563 !important; }
-.ql-toolbar.ql-snow button:hover .ql-stroke { stroke: #7c3aed !important; }
-.ql-toolbar.ql-snow button:hover .ql-fill   { fill:   #7c3aed !important; }
-.ql-toolbar.ql-snow button.ql-active .ql-stroke { stroke: #7c3aed !important; stroke-width: 2.2 !important; }
-.ql-toolbar.ql-snow button.ql-active .ql-fill   { fill:   #7c3aed !important; }
-
-/* Picker dropdowns (Header, Font, Size, Color) */
-.ql-toolbar.ql-snow .ql-picker-label {
-  color: #4b5563 !important;
-  font-weight: 500 !important;
-  border-radius: 6px !important;
-  padding: 2px 6px !important;
-}
-
-.ql-toolbar.ql-snow .ql-picker-label:hover {
-  color: #7c3aed !important;
-  background: rgba(124, 58, 237, 0.1) !important;
-}
-
-/* Code block styling (Terminal / IDE look) */
-.ql-editor pre.ql-syntax,
-.ql-editor pre {
-  background-color: #1e1e2e !important;
-  color: #cdd6f4 !important;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace !important;
-  font-size: 0.85rem !important;
-  padding: 14px 18px !important;
-  border-radius: 10px !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
-  overflow-x: auto !important;
-  margin: 12px 0 !important;
-  line-height: 1.6 !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-/* Inline code tags */
-.ql-editor code {
-  background: rgba(124, 58, 237, 0.1);
-  color: #6d28d9;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85em;
-}
-
-html.dark .ql-editor code {
-  background: rgba(167, 139, 250, 0.18);
-  color: #c4b5fd;
-}
-
-/* Notion / Teams Callout blockquotes */
-.ql-editor blockquote {
-  border-left: 4px solid #7c3aed !important;
-  background: rgba(124, 58, 237, 0.04) !important;
-  padding: 10px 16px !important;
-  border-radius: 0 8px 8px 0 !important;
-  margin: 12px 0 !important;
-  color: #4b5563 !important;
-  font-style: italic !important;
-}
-
-html.dark .ql-editor blockquote {
-  background: rgba(167, 139, 250, 0.06) !important;
-  color: #d1d5db !important;
-}
-
-/* Images inside editor - compact */
-.ql-editor img {
-  max-width: 100%;
-  max-height: 320px;
-  object-fit: contain;
-  border-radius: 10px;
-  margin: 10px 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-
-/* ============================================================
-   DRAG OVER STATE — Global
-   ============================================================ */
-.drag-over-global {
-  outline: 3px dashed var(--color-brand-primary);
-  outline-offset: -3px;
-}
-
-/* ============================================================
-   RESPONSIVE HELPERS
-   ============================================================ */
-@media (max-width: 480px) {
-  :root {
-    --space-6: 16px;
-    --space-8: 24px;
-  }
-}
-
-/* Reduce motion */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out forwards;
 }
