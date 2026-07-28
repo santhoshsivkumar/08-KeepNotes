@@ -848,7 +848,7 @@ const EditNote = ({ id, onClose }) => {
 
               {/* Primary Save Button */}
               <button
-                onClick={() => saveImmediately()}
+                onClick={async () => { await saveImmediately(); onClose(); }}
                 disabled={saving}
                 className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer ${
                   saved
