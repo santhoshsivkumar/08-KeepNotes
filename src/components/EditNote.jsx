@@ -12,6 +12,12 @@ import {
   Maximize2,
   Minimize2,
   AlertCircle,
+  Copy,
+  Check,
+  Download,
+  Minus,
+  Square,
+  GripHorizontal,
 } from "lucide-react";
 import { useUpload } from "../hooks/useUpload";
 import { useClipboard } from "../hooks/useClipboard";
@@ -19,6 +25,7 @@ import { useTheme } from "../hooks/useTheme";
 import MediaDropzone from "./shared/MediaDropzone";
 import OutlookAttachmentTile from "./shared/OutlookAttachmentTile";
 import { isImage } from "../utils/fileHelpers";
+import { downloadAllAttachments } from "../utils/downloadHelpers";
 
 /* ── Note accent colors ─────────────────────────────────── */
 const NOTE_COLORS = [
@@ -65,7 +72,11 @@ const EditNote = ({ id, onClose }) => {
   const [saved, setSaved]             = useState(false);
   const [saveError, setSaveError]     = useState(null);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [previewImg, setPreviewImg]   = useState(null);
+  const [copiedText, setCopiedText]   = useState(false);
+  const [windowDimensions, setWindowDimensions] = useState({ width: 880, height: 640 });
+  const [isResizing, setIsResizing]   = useState(false);
 
   const isLoadedRef    = useRef(false);
   const hasUserEdited  = useRef(false);
@@ -77,6 +88,69 @@ const EditNote = ({ id, onClose }) => {
   const collectionRef = collection(database, "docsData");
   const { uploadFile, uploading, progress } = useUpload();
   const { isDark } = useTheme();
+
+  /* ── 8-Directional Mouse Drag-to-Resize Handler (Windows App Style) ── */
+  const handleMouseDownEdge = (e, direction) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = windowDimensions.width;
+    const startHeight = windowDimensions.height;
+
+    const handleMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+
+      if (direction.includes("right")) {
+        newWidth = Math.max(420, Math.min(window.innerWidth - 32, startWidth + deltaX * 2));
+      } else if (direction.includes("left")) {
+        newWidth = Math.max(420, Math.min(window.innerWidth - 32, startWidth - deltaX * 2));
+      }
+
+      if (direction.includes("bottom")) {
+        newHeight = Math.max(400, Math.min(window.innerHeight - 32, startHeight + deltaY * 2));
+      } else if (direction.includes("top")) {
+        newHeight = Math.max(400, Math.min(window.innerHeight - 32, startHeight - deltaY * 2));
+      }
+
+      setWindowDimensions({ width: newWidth, height: newHeight });
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
+
+  /* ── 1-Click Copy Text & Code Handler (Excludes Title) ──── */
+  const handleCopyContent = useCallback(() => {
+    let textToCopy = "";
+    // Prefer Quill editor's getText() to preserve code block formatting and linebreaks exactly
+    const editor = quillRef.current?.getEditor();
+    if (editor) {
+      textToCopy = editor.getText().trim();
+    } else {
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = content || "";
+      textToCopy = (tempDiv.innerText || tempDiv.textContent || "").trim();
+    }
+
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy);
+      setCopiedText(true);
+      setTimeout(() => setCopiedText(false), 2000);
+    }
+  }, [content]);
 
   /* ── Attach Tooltips to Quill Toolbar Buttons ─────────── */
   useEffect(() => {
@@ -171,7 +245,7 @@ const EditNote = ({ id, onClose }) => {
     }
   }, [id, title, content, color, attachments]);
 
-  /* ── Instant Non-Blocking Close Handler (0ms delay) ────── */
+  /* ── Save-on-Close & Manual Save Handler (Zero Quota Burn) ── */
   const handleSafeClose = useCallback(() => {
     if (previewImg) {
       setPreviewImg(null);
@@ -180,37 +254,25 @@ const EditNote = ({ id, onClose }) => {
     // Close modal IMMEDIATELY (0ms) so user never waits!
     onClose();
 
-    // If user edited, save asynchronously in background
+    // Single atomic write ONLY if user made edits
     if (hasUserEdited.current) {
       saveImmediately();
     }
   }, [previewImg, saveImmediately, onClose]);
 
-  /* ── Debounced Auto-Save for Text Typing ──────────────── */
-  useEffect(() => {
-    if (!isLoadedRef.current || !hasUserEdited.current) return;
-
-    clearTimeout(saveTimer.current);
-    setSaving(true);
-    setSaved(false);
-
-    saveTimer.current = setTimeout(() => {
-      saveImmediately();
-    }, 150);
-
-    return () => clearTimeout(saveTimer.current);
-  }, [title, content, color, attachments, saveImmediately]);
-
-  /* ── Keyboard Shortcuts ───────────────────────────────── */
+  /* ── Keyboard Shortcuts (Esc to Close & Ctrl+S to Save) ───── */
   useEffect(() => {
     const handler = (e) => {
       if (e.key === "Escape") {
         handleSafeClose();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        saveImmediately();
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [handleSafeClose]);
+  }, [handleSafeClose, saveImmediately]);
 
   /* ── Insert Image Into Editor ─────────────────────────── */
   const insertImageIntoEditor = useCallback((url) => {
@@ -273,6 +335,31 @@ const EditNote = ({ id, onClose }) => {
   const selectedColor = NOTE_COLORS.find((c) => c.name === color) ?? NOTE_COLORS[0];
   const modalBg = isDark ? (selectedColor.darkSwatch || "#1c1e28") : (selectedColor.swatch || "#ffffff");
 
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-[#1c1e28] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl animate-fade-in text-xs font-semibold text-gray-800 dark:text-gray-100">
+        <div className="w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse shrink-0" />
+        <span className="max-w-[150px] sm:max-w-[200px] truncate">{title || "Untitled draft"}</span>
+        <div className="flex items-center gap-1 border-l border-gray-200 dark:border-white/10 pl-2">
+          <button
+            onClick={() => setIsMinimized(false)}
+            className="px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 dark:bg-brand-500/15 dark:hover:bg-brand-500/25 text-brand-600 dark:text-brand-300 transition-all font-semibold cursor-pointer"
+            title="Restore window"
+          >
+            Restore
+          </button>
+          <button
+            onClick={handleSafeClose}
+            className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all cursor-pointer"
+            title="Close window"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Backdrop */}
@@ -282,36 +369,51 @@ const EditNote = ({ id, onClose }) => {
       />
 
       {/* Modal Window */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 pointer-events-none">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 pointer-events-none">
         <div
           ref={editorWrapRef}
-          className={`relative w-full rounded-2xl shadow-modal flex flex-col pointer-events-auto transition-all duration-300 overflow-hidden ${
-            isMaximized
-              ? "h-full max-h-full max-w-full rounded-none"
-              : "max-w-4xl max-h-[92vh] h-[85vh]"
+          className={`relative rounded-2xl shadow-modal flex flex-col pointer-events-auto transition-all ${
+            isResizing ? "transition-none select-none" : "duration-200"
+          } overflow-hidden ${
+            isMaximized ? "w-full h-full max-w-full max-h-full rounded-none" : ""
           }`}
-          style={{ backgroundColor: modalBg }}
+          style={{
+            backgroundColor: modalBg,
+            width: isMaximized ? "100%" : `${windowDimensions.width}px`,
+            height: isMaximized ? "100%" : `${windowDimensions.height}px`,
+            maxWidth: isMaximized ? "100%" : "96vw",
+            maxHeight: isMaximized ? "100%" : "94vh",
+          }}
           onClick={(e) => e.stopPropagation()}
         >
 
           {/* ── 1. Top Header Bar ──────────────────────────── */}
           <div className="relative flex items-center justify-between px-5 pt-3.5 pb-2.5 shrink-0 border-b border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02]">
             
-            {/* Status indicator badge (Fixed Left Slot) */}
-            <div className="flex items-center gap-2 min-w-[100px] sm:min-w-[120px]">
-              {saving && (
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-500 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1 rounded-full animate-pulse">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-                  Saving…
-                </span>
-              )}
-              {!saving && saved && (
-                <span className="flex items-center gap-1 text-xs font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 px-2.5 py-1 rounded-full animate-fade-in">
-                  <Save size={12} /> Saved ✓
-                </span>
-              )}
-              {!saving && !saved && saveError && (
-                <span className="flex items-center gap-1 text-xs font-semibold text-red-500 bg-red-50 dark:bg-red-500/10 px-2.5 py-1 rounded-full">
+            {/* Left Slot: Save Button & Status Indicator */}
+            <div className="flex items-center gap-2 min-w-[140px] sm:min-w-[180px]">
+              <button
+                onClick={() => saveImmediately()}
+                disabled={saving}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer ${
+                  saved
+                    ? "bg-emerald-600 text-white"
+                    : "bg-brand-500 hover:bg-brand-600 text-white active:scale-95 disabled:opacity-50"
+                }`}
+                title="Save changes to cloud (Ctrl+S)"
+              >
+                {saving ? (
+                  <AppleSpinner className="w-3.5 h-3.5 text-white" />
+                ) : saved ? (
+                  <Check size={13} className="text-white" />
+                ) : (
+                  <Save size={13} />
+                )}
+                <span>{saving ? "Saving…" : saved ? "Saved ✓" : "Save"}</span>
+              </button>
+
+              {saveError && (
+                <span className="flex items-center gap-1 text-xs font-semibold text-red-500 bg-red-50 dark:bg-red-500/10 px-2 py-1 rounded-md">
                   <AlertCircle size={12} /> {saveError}
                 </span>
               )}
@@ -338,21 +440,33 @@ const EditNote = ({ id, onClose }) => {
               ))}
             </div>
 
-            {/* Header Right Actions (Fixed Right Slot) */}
-            <div className="flex items-center gap-1 min-w-[100px] sm:min-w-[120px] justify-end">
+            {/* Header Right Window Control Buttons (Windows OS Style) */}
+            <div className="flex items-center gap-1 min-w-[120px] justify-end">
+              {/* Minimize */}
+              <button
+                onClick={() => setIsMinimized(true)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer"
+                title="Minimize window"
+              >
+                <Minus size={15} />
+              </button>
+
+              {/* Maximize / Restore */}
               <button
                 onClick={() => setIsMaximized(!isMaximized)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 transition-all"
-                title={isMaximized ? "Restore window size" : "Maximize editor window"}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer"
+                title={isMaximized ? "Restore window size" : "Maximize window"}
               >
-                {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                {isMaximized ? <Minimize2 size={15} /> : <Square size={14} />}
               </button>
+
+              {/* Close */}
               <button
                 onClick={handleSafeClose}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all cursor-pointer"
                 title="Close editor (Esc)"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
           </div>
@@ -394,7 +508,24 @@ const EditNote = ({ id, onClose }) => {
           {/* ── 3. Drag Zone & Unified Quill Editor + Attachments Box ── */}
           <MediaDropzone onFiles={handleFiles} disabled={uploading}>
             <div className="flex-1 flex flex-col min-h-0 px-5 py-2">
-              <div className="flex-1 flex flex-col min-h-0 rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white/70 dark:bg-[#151720]/70 overflow-hidden shadow-sm">
+              <div className="relative flex-1 flex flex-col min-h-0 rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white/70 dark:bg-[#151720]/70 overflow-hidden shadow-sm">
+                
+                {/* 1-Click Copy Code / Text Button (Secondary Glass Utility Button Style) */}
+                <div className="absolute top-2 right-3 z-20">
+                  <button
+                    onClick={handleCopyContent}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer active:scale-95 ${
+                      copiedText
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500"
+                        : "bg-white/90 hover:bg-white dark:bg-[#222533] dark:hover:bg-[#2a2e3f] text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/10"
+                    }`}
+                    title="1-Click Copy text & code to clipboard (excluding title)"
+                  >
+                    {copiedText ? <Check size={13} className="text-white" /> : <Copy size={13} className="text-brand-500" />}
+                    <span>{copiedText ? "Copied! ✓" : "Copy Code / Text"}</span>
+                  </button>
+                </div>
+
                 {/* Text Area */}
                 <ReactQuill
                   ref={quillRef}
@@ -412,20 +543,46 @@ const EditNote = ({ id, onClose }) => {
                   className="flex-1 flex flex-col h-full"
                 />
 
+                {/* Subtle Background Watermark / Placeholder Hint inside Text Area */}
+                {attachments.length === 0 && (
+                  <div className="absolute bottom-3 right-4 pointer-events-none select-none z-10 opacity-40">
+                    <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/[0.05] dark:bg-white/[0.08] border border-black/[0.06] dark:border-white/[0.1] font-mono text-[10px] font-bold">
+                        Ctrl + V
+                      </span>
+                      <span>Paste Image</span>
+                      <span>·</span>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/[0.05] dark:bg-white/[0.08] border border-black/[0.06] dark:border-white/[0.1] font-mono text-[10px] font-bold">
+                        <Upload size={10} /> Drag &amp; Drop
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Attachments Area INSIDE the Editor Container Box at Bottom */}
                 {attachments.length > 0 && (
-                  <div className="px-4 py-2.5 border-t border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] shrink-0 overflow-visible">
+                  <div className="px-4 py-2.5 border-t border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] shrink-0 overflow-visible z-20">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                         <Paperclip size={12} className="text-brand-500" />
                         <span>Attachments ({attachments.length})</span>
                       </div>
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="text-xs text-brand-600 dark:text-brand-400 font-semibold hover:underline"
-                      >
-                        + Add files
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => downloadAllAttachments(attachments)}
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-500/30 transition-all cursor-pointer"
+                          title="Download all attachments"
+                        >
+                          <Download size={12} /> Download All
+                        </button>
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-brand-50 hover:bg-brand-100 dark:bg-brand-500/15 dark:hover:bg-brand-500/25 text-brand-600 dark:text-brand-300 border border-brand-200/50 dark:border-brand-500/30 transition-all cursor-pointer"
+                        >
+                          <Paperclip size={12} />
+                          <span>+ Add files</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Outlook Attachment Tiles Grid */}
@@ -462,7 +619,7 @@ const EditNote = ({ id, onClose }) => {
               <span>{charCount} characters</span>
             </div>
 
-            {/* Center / Right: Upload Progress Dock or Attach shortcut */}
+            {/* Center / Right: Upload Progress Dock & Styled Attach Button */}
             <div className="flex items-center gap-3">
               {/* Docked Upload Progress Indicator */}
               {uploading && (
@@ -478,25 +635,46 @@ const EditNote = ({ id, onClose }) => {
                 </div>
               )}
 
-              {/* Show attach shortcut ONLY when attachments array is empty to prevent duplicates */}
+              {/* Styled Attach Button */}
               {!uploading && attachments.length === 0 && (
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="hover:text-brand-500 flex items-center gap-1 font-medium transition-colors"
-                  title="Attach document or image file"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 active:scale-95 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                  title="Attach document, image or code file"
                 >
-                  <Paperclip size={12} /> Attach file
+                  <Paperclip size={13} />
+                  <span>Attach File</span>
                 </button>
-              )}
-
-              {!uploading && (
-                <>
-                  <span>·</span>
-                  <span className="hidden sm:inline">Ctrl+V paste image · Drag &amp; drop files</span>
-                </>
               )}
             </div>
           </div>
+
+          {/* Edge & Corner Resizers (Windows OS style 8-Directional Handles) */}
+          {!isMaximized && (
+            <>
+              {/* 4 Outer Edges */}
+              <div onMouseDown={(e) => handleMouseDownEdge(e, "right")} className="absolute top-0 right-0 w-2 h-full cursor-e-resize z-40" title="Resize width" />
+              <div onMouseDown={(e) => handleMouseDownEdge(e, "left")} className="absolute top-0 left-0 w-2 h-full cursor-w-resize z-40" title="Resize width" />
+              <div onMouseDown={(e) => handleMouseDownEdge(e, "top")} className="absolute top-0 left-0 w-full h-2 cursor-n-resize z-40" title="Resize height" />
+              <div onMouseDown={(e) => handleMouseDownEdge(e, "bottom")} className="absolute bottom-0 left-0 w-full h-2 cursor-s-resize z-40" title="Resize height" />
+
+              {/* 4 Outer Corners */}
+              <div onMouseDown={(e) => handleMouseDownEdge(e, "top-left")} className="absolute top-0 left-0 w-4 h-4 cursor-nw-resize z-50" title="Resize corner" />
+              <div onMouseDown={(e) => handleMouseDownEdge(e, "top-right")} className="absolute top-0 right-0 w-4 h-4 cursor-ne-resize z-50" title="Resize corner" />
+              <div onMouseDown={(e) => handleMouseDownEdge(e, "bottom-left")} className="absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize z-50" title="Resize corner" />
+              <div
+                onMouseDown={(e) => handleMouseDownEdge(e, "bottom-right")}
+                className="absolute bottom-1 right-1 w-4 h-4 cursor-se-resize z-50 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-brand-500 select-none opacity-60 hover:opacity-100 transition-opacity"
+                title="Drag to resize window"
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+                  <circle cx="8" cy="8" r="1" />
+                  <circle cx="8" cy="4" r="1" />
+                  <circle cx="4" cy="8" r="1" />
+                </svg>
+              </div>
+            </>
+          )}
 
         </div>
       </div>

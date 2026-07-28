@@ -10,6 +10,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { getFileIcon, formatFileSize, isImage } from "../../utils/fileHelpers";
+import { downloadFile } from "../../utils/downloadHelpers";
 
 /**
  * OutlookAttachmentTile — Exact replica of Microsoft Outlook attachment tile & dropdown menu.
@@ -123,17 +124,16 @@ const OutlookAttachmentTile = ({
           </button>
 
           {/* Option: Save / Download */}
-          <a
-            href={attachment.url}
-            download={attachment.name}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => setMenuOpen(false)}
-            className="w-full px-3.5 py-2 flex items-center gap-2.5 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left text-gray-700 dark:text-gray-200 no-underline"
+          <button
+            onClick={() => {
+              setMenuOpen(false);
+              downloadFile(attachment.url, attachment.name);
+            }}
+            className="w-full px-3.5 py-2 flex items-center gap-2.5 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left text-gray-700 dark:text-gray-200"
           >
             <Download size={14} className="text-gray-500 dark:text-gray-400" />
             <span>Save / Download</span>
-          </a>
+          </button>
 
           {/* Option: Insert Inline (if image) */}
           {isImg && onInsertInline && (

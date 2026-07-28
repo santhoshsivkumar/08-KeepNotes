@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, FileText, Paperclip, Sun, Moon } from "lucide-react";
+import { Plus, FileText, Paperclip, Sun, Moon, Copy, Check, Download } from "lucide-react";
 import {
   addDoc,
   collection,
@@ -12,6 +12,7 @@ import {
 import { database } from "../firebase/firebaseConfig";
 import EditNote from "./EditNote";
 import { useTheme } from "../hooks/useTheme";
+import { downloadAllAttachments } from "../utils/downloadHelpers";
 
 /** Extract the first <img src="..."> from an HTML string for card cover */
 function extractCoverImage(html) {
@@ -54,6 +55,7 @@ const NotesHome = () => {
   const [isCreating, setIsCreating]   = useState(false);
   const [deletingId, setDeletingId]   = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [copiedNoteId, setCopiedNoteId]   = useState(null);
 
   const { toggle, isDark } = useTheme();
   const isMounted      = useRef(false);
@@ -61,6 +63,21 @@ const NotesHome = () => {
   const quickCaptureRef = useRef(null);
 
   const collectionRef = collection(database, "docsData");
+
+  /* ── 1-Click Copy Text & Code Handler (Excludes Title) ──── */
+  const handleCopyNote = (e, note) => {
+    e.stopPropagation();
+    // Exclude title completely — parse HTML to clean formatted plain text/code
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = note.docsDesc || "";
+    const textToCopy = (tempDiv.innerText || tempDiv.textContent || "").trim();
+
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy);
+      setCopiedNoteId(note.id);
+      setTimeout(() => setCopiedNoteId(null), 2000);
+    }
+  };
 
   // Click outside quick capture to collapse
   useEffect(() => {
@@ -322,7 +339,7 @@ const NotesHome = () => {
                           </span>
                         )}
                       </div>
-                      <div className={`flex items-center gap-1 transition-opacity duration-150 ${isDeletingInProgress || isDeleting ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+                      <div className={`flex items-center gap-1 transition-opacity duration-150 ${isDeletingInProgress || isDeleting || copiedNoteId === note.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
                         {/* Delete Confirm inline pill */}
                         {isDeleting && !isDeletingInProgress && (
                           <span
@@ -336,16 +353,47 @@ const NotesHome = () => {
                           </span>
                         )}
 
-                        {/* Edit */}
                         {!isDeleting && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openNote(note.id); }}
-                            disabled={isDeletingInProgress}
-                            className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-all disabled:opacity-40"
-                            title="Edit item"
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                          </button>
+                          <>
+                            {/* 1-Click Copy Text & Code */}
+                            <button
+                              onClick={(e) => handleCopyNote(e, note)}
+                              disabled={isDeletingInProgress}
+                              className={`p-1.5 rounded-lg transition-all ${
+                                copiedNoteId === note.id
+                                  ? "text-green-600 bg-green-50 dark:bg-green-500/20 dark:text-green-400"
+                                  : "text-gray-400 dark:text-gray-500 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10"
+                              }`}
+                              title={copiedNoteId === note.id ? "Copied! ✓" : "1-Click Copy text & code"}
+                            >
+                              {copiedNoteId === note.id ? <Check size={14} /> : <Copy size={14} />}
+                            </button>
+
+                            {/* 1-Click Download All Attachments */}
+                            {attCount > 0 && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  downloadAllAttachments(note.attachments);
+                                }}
+                                disabled={isDeletingInProgress}
+                                className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all"
+                                title={`Download all ${attCount} ${attCount === 1 ? "attachment" : "attachments"}`}
+                              >
+                                <Download size={14} />
+                              </button>
+                            )}
+
+                            {/* Edit */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openNote(note.id); }}
+                              disabled={isDeletingInProgress}
+                              className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-all disabled:opacity-40"
+                              title="Edit item"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                          </>
                         )}
 
                         {/* Delete with Apple Spinner */}
