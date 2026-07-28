@@ -131,21 +131,18 @@ const EditNote = ({ id, onClose }) => {
     return Math.max(1, Math.floor(available / 215));
   }, [statusBarWidth]);
 
-  // Close paste/attachment dropdowns on click outside
+  // Close paste dropdown on click outside (attachment panel only closes on explicit X button click)
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (pasteMenuRef.current && !pasteMenuRef.current.contains(e.target)) {
         setPasteMenuOpen(false);
       }
-      if (attachmentPanelRef.current && !attachmentPanelRef.current.contains(e.target)) {
-        setShowAttachmentPanel(false);
-      }
     };
-    if (pasteMenuOpen || showAttachmentPanel) {
+    if (pasteMenuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [pasteMenuOpen, showAttachmentPanel]);
+  }, [pasteMenuOpen]);
 
   /* ── MS Word Style Paste Handlers ── */
   const handlePastePlainText = async () => {
@@ -423,14 +420,13 @@ const EditNote = ({ id, onClose }) => {
       hasUserEdited.current = true;
       setAttachments((prev) => {
         const updated = [...prev, ...newResults];
-        saveImmediately(updated);
         if (updated.length > maxVisibleTiles) {
           setShowAttachmentPanel(true);
         }
         return updated;
       });
     }
-  }, [uploadFile, id, saveImmediately]);
+  }, [uploadFile, id, maxVisibleTiles]);
 
   /* ── Clipboard Listener (Ctrl+V) ─────────────────────── */
   useClipboard({
@@ -439,18 +435,16 @@ const EditNote = ({ id, onClose }) => {
     enabled: true,
   });
 
-  /* ── Remove Attachment & Immediate Save ──────────────── */
+  /* ── Remove Attachment (In-Memory, Saved on Explicit Save/Close) ── */
   const removeAttachment = useCallback((toRemove) => {
     hasUserEdited.current = true;
     setAttachments((prev) => {
-      const updated = prev.filter((a) => {
+      return prev.filter((a) => {
         if (a.url && toRemove.url) return a.url !== toRemove.url;
         return a.name !== toRemove.name;
       });
-      saveImmediately(updated);
-      return updated;
     });
-  }, [saveImmediately]);
+  }, []);
 
   // Calculate word and character count
   const { wordCount, charCount } = useMemo(() => {
