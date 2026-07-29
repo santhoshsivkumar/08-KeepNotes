@@ -3,7 +3,7 @@
  */
 
 /** Max file size allowed for upload (10 MB) */
-export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+export const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB
 
 /** Accepted MIME types */
 export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
