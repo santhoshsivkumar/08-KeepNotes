@@ -586,7 +586,7 @@ const EditNote = ({ id, onClose }) => {
             ref={fileInputRef}
             type="file"
             multiple
-            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip"
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.rar,.7z,.gz,.tar"
             className="hidden"
             onChange={(e) => {
               const files = Array.from(e.target.files || []);

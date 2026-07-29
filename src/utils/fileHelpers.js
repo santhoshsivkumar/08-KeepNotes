@@ -7,8 +7,19 @@ export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 /** Accepted MIME types */
 export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
+export const ACCEPTED_ARCHIVE_TYPES = [
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/x-zip",
+  "application/octet-stream", // some browsers report zip as this
+  "application/x-rar-compressed",
+  "application/x-7z-compressed",
+  "application/gzip",
+  "application/x-tar",
+];
 export const ACCEPTED_FILE_TYPES  = [
   ...ACCEPTED_IMAGE_TYPES,
+  ...ACCEPTED_ARCHIVE_TYPES,
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -60,6 +71,11 @@ export function getFileTypeLabel(file) {
   if (file.type.includes("excel") || file.type.includes("spreadsheet")) return "Excel";
   if (file.type === "text/plain") return "Text";
   if (file.type === "text/csv") return "CSV";
+  if (
+    file.type.includes("zip") || file.type.includes("rar") ||
+    file.type.includes("7z") || file.type.includes("gzip") ||
+    file.type.includes("tar")
+  ) return "Archive";
   return "File";
 }
 
@@ -75,5 +91,10 @@ export function getFileIcon(file) {
   if (type.includes("word")) return "📝";
   if (type.includes("excel") || type.includes("spreadsheet")) return "📊";
   if (type === "text/plain" || type === "text/csv") return "📃";
+  if (
+    type.includes("zip") || type.includes("rar") ||
+    type.includes("7z") || type.includes("gzip") ||
+    type.includes("tar")
+  ) return "🗜️";
   return "📎";
 }
