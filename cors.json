@@ -1,0 +1,24 @@
+[
+  {
+    "origin": [
+      "https://sannote.netlify.app",
+      "http://localhost:5173",
+      "http://localhost:3000"
+    ],
+    "method": [
+      "GET",
+      "PUT",
+      "POST",
+      "DELETE",
+      "HEAD"
+    ],
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "Content-Length",
+      "User-Agent",
+      "x-goog-resumable"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]
