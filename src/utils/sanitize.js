@@ -11,9 +11,9 @@ export function sanitizeHTML(dirty) {
     ALLOWED_TAGS: [
       "p", "br", "strong", "em", "u", "s", "h1", "h2", "h3",
       "ul", "ol", "li", "blockquote", "pre", "code",
-      "a", "img",
+      "a", "img", "span",
     ],
-    ALLOWED_ATTR: ["href", "src", "alt", "target", "rel", "class"],
-    ALLOW_DATA_ATTR: false,
+    ALLOWED_ATTR: ["href", "src", "alt", "target", "rel", "class", "style", "title", "data-cc", "contenteditable"],
+    ALLOW_DATA_ATTR: true,
   });
 }

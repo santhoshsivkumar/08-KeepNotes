@@ -13,6 +13,10 @@ import { database } from "../firebase/firebaseConfig";
 import EditNote from "./EditNote";
 import { useTheme } from "../hooks/useTheme";
 import { downloadAllAttachments } from "../utils/downloadHelpers";
+import {
+  formatControlCharsToHTML,
+  extractPlainTextWithControlChars,
+} from "../utils/controlCharHelpers";
 
 /** Extract the first <img src="..."> from an HTML string for card cover */
 function extractCoverImage(html) {
@@ -67,10 +71,7 @@ const NotesHome = () => {
   /* ── 1-Click Copy Text & Code Handler (Excludes Title) ──── */
   const handleCopyNote = (e, note) => {
     e.stopPropagation();
-    // Exclude title completely — parse HTML to clean formatted plain text/code
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = note.docsDesc || "";
-    const textToCopy = (tempDiv.innerText || tempDiv.textContent || "").trim();
+    const textToCopy = extractPlainTextWithControlChars(note.docsDesc);
 
     if (textToCopy) {
       navigator.clipboard.writeText(textToCopy);
@@ -329,7 +330,7 @@ const NotesHome = () => {
                         <div
                           className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed line-clamp-7 [&_p]:m-0 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-sm [&_ul]:pl-4 [&_ol]:pl-4 [&_img]:hidden"
                           dangerouslySetInnerHTML={{
-                            __html: note.docsDesc.length > 2500 ? note.docsDesc.slice(0, 2500) + "..." : note.docsDesc
+                            __html: formatControlCharsToHTML(note.docsDesc.length > 2500 ? note.docsDesc.slice(0, 2500) + "..." : note.docsDesc)
                           }}
                         />
                       ) : (

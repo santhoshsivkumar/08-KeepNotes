@@ -35,16 +35,17 @@ import MediaDropzone from "./shared/MediaDropzone";
 import OutlookAttachmentTile from "./shared/OutlookAttachmentTile";
 import { isImage } from "../utils/fileHelpers";
 import { downloadAllAttachments } from "../utils/downloadHelpers";
+import {
+  hasControlChars,
+  formatControlCharsToHTML,
+  extractPlainTextWithControlChars,
+  restoreRawControlChars,
+} from "../utils/controlCharHelpers";
 
 /* ── Plain Text Converter Helper ────────────────────────── */
 const getPlainText = (htmlOrText) => {
   if (!htmlOrText) return "";
-  if (!htmlOrText.includes("<")) return htmlOrText;
-  return htmlOrText
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n")
-    .replace(/<\/div>/gi, "\n")
-    .replace(/<[^>]+>/g, "");
+  return extractPlainTextWithControlChars(htmlOrText);
 };
 
 /* ── Apple-style micro spinner ───────────────────────────── */
@@ -198,10 +199,11 @@ const EditNote = ({ id, onClose }) => {
       const plainText = clipboardData.getData("text/plain");
       if (!plainText) return;
 
+      const hasCC = hasControlChars(plainText);
       const lineCount = (plainText.match(/\n/g) || []).length;
       const isLarge = plainText.length > 20000 || lineCount > 300;
 
-      if (isLarge) {
+      if (hasCC || isLarge) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -210,10 +212,11 @@ const EditNote = ({ id, onClose }) => {
 
         setTimeout(() => {
           try {
-            setContent(plainText);
+            const formatted = formatControlCharsToHTML(plainText);
+            setContent(formatted);
             hasUserEdited.current = true;
           } catch (err) {
-            console.error("Large paste processing error:", err);
+            console.error("Paste processing error:", err);
           } finally {
             setIsPastingLarge(false);
           }
@@ -239,17 +242,15 @@ const EditNote = ({ id, onClose }) => {
       if (!editor) return;
 
       const range = editor.getSelection(true) || { index: editor.getLength() };
+      const hasCC = hasControlChars(text);
       const lineCount = (text.match(/\n/g) || []).length;
 
-      if (text.length > 20000 || lineCount > 300) {
+      if (hasCC || text.length > 20000 || lineCount > 300) {
         setIsPastingLarge(true);
         setTimeout(() => {
           try {
-            const escaped = text
-              .replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;");
-            const htmlSnippet = `<pre style="white-space: pre-wrap; word-break: break-word; font-family: inherit; margin: 0; padding: 0;">${escaped}</pre>`;
+            const formatted = formatControlCharsToHTML(text);
+            const htmlSnippet = `<pre style="white-space: pre-wrap; word-break: break-word; font-family: inherit; margin: 0; padding: 0;">${formatted}</pre>`;
             editor.clipboard.dangerouslyPasteHTML(range.index, htmlSnippet, "user");
             editor.setSelection(range.index + text.length, 0);
             hasUserEdited.current = true;
@@ -423,8 +424,8 @@ const EditNote = ({ id, onClose }) => {
         setColor(data.color || "default");
         setAttachments(data.attachments || []);
 
-        // Auto-activate High Performance Mode for large code/text notes
-        if (desc.length > 20000 || (desc.match(/\n/g) || []).length > 300) {
+        // Auto-activate High Performance Mode for control characters or large code/text notes
+        if (hasControlChars(desc) || desc.length > 20000 || (desc.match(/\n/g) || []).length > 300) {
           setIsHighPerfMode(true);
         }
 
