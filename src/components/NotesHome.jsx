@@ -239,7 +239,10 @@ const NotesHome = () => {
                 ref={quickInputRef}
                 type="text"
                 value={quickTitle}
-                onChange={(e) => setQuickTitle(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setQuickTitle(val.length > 1000 ? val.slice(0, 1000) : val);
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder="Title"
                 disabled={isCreating}
@@ -298,6 +301,11 @@ const NotesHome = () => {
               const isDeletingInProgress = deletingId === note.id;
               const coverImg   = extractCoverImage(note.docsDesc);
               const attCount   = (note.attachments || []).length;
+              const noteLines  = note.docsDesc
+                ? (note.docsDesc.includes("<p>")
+                    ? (note.docsDesc.match(/<p>/gi) || []).length
+                    : Math.max(1, (note.docsDesc.match(/\n/g) || []).length + 1))
+                : 0;
               return (
                 <div key={note.id} className="group animate-fade-up">
                   <div className={`relative h-[240px] flex flex-col justify-between rounded-xl border ${colors.border} ${colors.bg} shadow-card hover:shadow-card-hover transition-all duration-200 hover:-translate-y-0.5 cursor-pointer`}>
@@ -320,7 +328,9 @@ const NotesHome = () => {
                       {note.docsDesc ? (
                         <div
                           className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed line-clamp-7 [&_p]:m-0 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-sm [&_ul]:pl-4 [&_ol]:pl-4 [&_img]:hidden"
-                          dangerouslySetInnerHTML={{ __html: note.docsDesc }}
+                          dangerouslySetInnerHTML={{
+                            __html: note.docsDesc.length > 2500 ? note.docsDesc.slice(0, 2500) + "..." : note.docsDesc
+                          }}
                         />
                       ) : (
                         <p className="text-gray-400 dark:text-gray-600 text-xs italic mt-1">No additional text</p>
@@ -329,12 +339,17 @@ const NotesHome = () => {
 
                     {/* Actions row (Always Visible) */}
                     <div className="px-4 py-2 flex items-center justify-between border-t border-black/[0.04] dark:border-white/[0.05] shrink-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-gray-300 dark:text-gray-600 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
                           {note.updatedAt?.toDate
                             ? new Date(note.updatedAt.toDate()).toLocaleDateString("en-IN", { day: "numeric", month: "short" })
                             : ""}
                         </span>
+                        {noteLines > 0 && (
+                          <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.05] dark:border-white/[0.08] rounded-full px-1.5 py-0.5 font-mono">
+                            {noteLines.toLocaleString()} {noteLines === 1 ? "line" : "lines"}
+                          </span>
+                        )}
                         {attCount > 0 && (
                           <span className="flex items-center gap-0.5 text-[10px] text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/[0.06] rounded-full px-1.5 py-0.5">
                             <Paperclip size={8} /> {attCount}

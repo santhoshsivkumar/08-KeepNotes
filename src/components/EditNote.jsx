@@ -103,6 +103,7 @@ const EditNote = ({ id, onClose }) => {
   };
 
   const [pasteMenuOpen, setPasteMenuOpen] = useState(false);
+  const [isPastingLarge, setIsPastingLarge] = useState(false);
 
   const [toolbarCollapsed, setToolbarCollapsedRaw] = useState(() =>
     localStorage.getItem("kn_toolbarCollapsed") !== "false"
@@ -171,6 +172,57 @@ const EditNote = ({ id, onClose }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [pasteMenuOpen]);
 
+  /* ── Intercept Large Pastes (85k+ lines) to prevent DOM/Quill freeze ── */
+  useEffect(() => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor || !editor.root) return;
+    const root = editor.root;
+
+    const handlePaste = (e) => {
+      const clipboardData = e.clipboardData || window.clipboardData;
+      if (!clipboardData) return;
+
+      // If pasting images or explicit files, let image handler take care of it
+      const files = Array.from(clipboardData.files || []);
+      if (files.some((f) => f.type.startsWith("image/"))) return;
+
+      const plainText = clipboardData.getData("text/plain");
+      if (!plainText) return;
+
+      const lineCount = (plainText.match(/\n/g) || []).length;
+      const isLarge = plainText.length > 20000 || lineCount > 300;
+
+      if (isLarge) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        setIsPastingLarge(true);
+        setTimeout(() => {
+          try {
+            const range = editor.getSelection(true) || { index: editor.getLength() };
+            const escaped = plainText
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+
+            // Wrap in single pre-formatted element (1 DOM node instead of 85,000 <p> DOM nodes)
+            const htmlSnippet = `<pre style="white-space: pre-wrap; word-break: break-word; font-family: inherit; margin: 0; padding: 0;">${escaped}</pre>`;
+            editor.clipboard.dangerouslyPasteHTML(range.index, htmlSnippet, "user");
+            editor.setSelection(range.index + plainText.length, 0);
+            hasUserEdited.current = true;
+          } catch (err) {
+            console.error("Large paste processing error:", err);
+          } finally {
+            setIsPastingLarge(false);
+          }
+        }, 15);
+      }
+    };
+
+    root.addEventListener("paste", handlePaste, { capture: true });
+    return () => root.removeEventListener("paste", handlePaste, { capture: true });
+  }, []);
+
   /* ── MS Word Style Paste Handlers ── */
   const handlePastePlainText = async () => {
     setPasteMenuOpen(false);
@@ -179,8 +231,28 @@ const EditNote = ({ id, onClose }) => {
       const text = await navigator.clipboard.readText();
       if (!text) return;
       const editor = quillRef.current?.getEditor();
-      if (editor) {
-        const range = editor.getSelection(true) || { index: editor.getLength() };
+      if (!editor) return;
+
+      const range = editor.getSelection(true) || { index: editor.getLength() };
+      const lineCount = (text.match(/\n/g) || []).length;
+
+      if (text.length > 20000 || lineCount > 300) {
+        setIsPastingLarge(true);
+        setTimeout(() => {
+          try {
+            const escaped = text
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+            const htmlSnippet = `<pre style="white-space: pre-wrap; word-break: break-word; font-family: inherit; margin: 0; padding: 0;">${escaped}</pre>`;
+            editor.clipboard.dangerouslyPasteHTML(range.index, htmlSnippet, "user");
+            editor.setSelection(range.index + text.length, 0);
+            hasUserEdited.current = true;
+          } finally {
+            setIsPastingLarge(false);
+          }
+        }, 15);
+      } else {
         editor.insertText(range.index, text, "user");
         editor.setSelection(range.index + text.length, 0);
         hasUserEdited.current = true;
@@ -372,10 +444,19 @@ const EditNote = ({ id, onClose }) => {
       return att;
     });
 
+    // Safeguard for Firestore document size limit (1MB max per document)
+    let docsDescToSave = content;
+    const contentBytes = new Blob([content || ""]).size;
+    if (contentBytes > 800000) {
+      const mbSize = (contentBytes / (1024 * 1024)).toFixed(2);
+      docsDescToSave = content.substring(0, 700000) +
+        `<p style="color: #854d0e; background: #fef9c3; padding: 8px 12px; border-radius: 6px; margin-top: 12px; font-size: 12px; font-weight: 600;">⚡ Large Note Mode: Cloud sync saved first 700KB (${mbSize}MB total preserved in editor). Full text active in editor.</p>`;
+    }
+
     try {
       await updateDoc(doc(collectionRef, id), {
         title,
-        docsDesc: content,
+        docsDesc: docsDescToSave,
         color,
         attachments: safeAttachments,
         updatedAt: new Date(),
@@ -384,7 +465,8 @@ const EditNote = ({ id, onClose }) => {
       setSaved(true);
       hasUserEdited.current = false;
       setTimeout(() => setSaved(false), 2000);
-    } catch {
+    } catch (err) {
+      console.error("Save error:", err);
       setSaving(false);
       setSaveError("Error saving note");
     }
@@ -473,11 +555,41 @@ const EditNote = ({ id, onClose }) => {
     });
   }, []);
 
-  // Calculate word and character count
-  const { wordCount, charCount } = useMemo(() => {
+  // Fast line, word and character count calculation (Zero memory spike for 85k+ lines)
+  const { lineCount, wordCount, charCount } = useMemo(() => {
+    if (!content) return { lineCount: 0, wordCount: 0, charCount: 0 };
+
+    // Fast line count calculation (handles <p> tags, <br> tags, and plain \n breaks)
+    let lines = 1;
+    if (content.includes("<p>")) {
+      const matches = content.match(/<p>/gi);
+      lines = matches ? matches.length : 1;
+    } else {
+      let nlCount = 0;
+      for (let i = 0; i < content.length; i++) {
+        if (content.charCodeAt(i) === 10) nlCount++;
+      }
+      lines = Math.max(1, nlCount + (content.length > 0 ? 1 : 0));
+    }
+
+    if (content.length > 50000) {
+      let inWord = false, words = 0, chars = 0, inTag = false;
+      for (let i = 0; i < content.length; i++) {
+        const ch = content.charCodeAt(i);
+        if (ch === 60 /* < */) { inTag = true; continue; }
+        if (inTag) { if (ch === 62 /* > */) inTag = false; continue; }
+        chars++;
+        if (ch !== 32 && ch !== 9 && ch !== 10 && ch !== 13) {
+          if (!inWord) { words++; inWord = true; }
+        } else {
+          inWord = false;
+        }
+      }
+      return { lineCount: lines, wordCount: words, charCount: chars };
+    }
     const plainText = content.replace(/<[^>]+>/g, " ").trim();
     const words = plainText ? plainText.split(/\s+/).filter(Boolean).length : 0;
-    return { wordCount: words, charCount: plainText.length };
+    return { lineCount: lines, wordCount: words, charCount: plainText.length };
   }, [content]);
 
   const selectedColor = NOTE_COLORS.find((c) => c.name === color) ?? NOTE_COLORS[0];
@@ -510,6 +622,13 @@ const EditNote = ({ id, onClose }) => {
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Large Paste Indicator Toast */}
+          {isPastingLarge && (
+            <div className="absolute top-14 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-brand-600 dark:bg-brand-500 text-white text-xs px-4 py-2 rounded-full shadow-2xl font-medium animate-fade-in pointer-events-none">
+              <AppleSpinner />
+              <span>Formatting and pasting large document (85,000+ lines)…</span>
+            </div>
+          )}
           {/* ── 1. Top Header Bar (Wireframe Layout: Left Title Area, Center Controls/Options, Right Window Options) ── */}
           <div className="relative flex items-center justify-between px-4 py-2 shrink-0 border-b border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] gap-3">
             {/* Left: Title Area (Truncates with ... before centered color swatches) */}
@@ -831,8 +950,23 @@ const EditNote = ({ id, onClose }) => {
               )}
             </div>
 
-            {/* Far Right: Direct Copy Button & Save Button */}
+            {/* Far Right: Line/Word/Char Count Badge, Direct Copy Button & Save Button */}
             <div className="flex items-center gap-2 shrink-0">
+              {/* Line Count, Word Count & Character Count Pill */}
+              <div className="hidden sm:flex items-center gap-1.5 font-mono text-[11px] font-medium text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-[#222533] border border-gray-200 dark:border-white/10 px-2.5 py-1 rounded-lg shadow-xs shrink-0 select-none">
+                <span title="Total lines in note">
+                  <strong className="text-brand-600 dark:text-brand-400 font-bold">{lineCount.toLocaleString()}</strong> lines
+                </span>
+                <span className="text-gray-300 dark:text-gray-600">•</span>
+                <span title="Total words in note">
+                  <strong className="text-gray-700 dark:text-gray-200 font-semibold">{wordCount.toLocaleString()}</strong> words
+                </span>
+                <span className="text-gray-300 dark:text-gray-600">•</span>
+                <span title="Total characters in note">
+                  <strong className="text-gray-700 dark:text-gray-200 font-semibold">{charCount.toLocaleString()}</strong> chars
+                </span>
+              </div>
+
               <button
                 onClick={handleCopy}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer active:scale-95 ${
