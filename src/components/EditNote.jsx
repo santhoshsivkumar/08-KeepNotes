@@ -26,6 +26,7 @@ import {
   Settings,
   ChevronDown,
   ChevronUp,
+  Code,
 } from "lucide-react";
 import { useUpload } from "../hooks/useUpload";
 import { useClipboard } from "../hooks/useClipboard";
@@ -34,6 +35,17 @@ import MediaDropzone from "./shared/MediaDropzone";
 import OutlookAttachmentTile from "./shared/OutlookAttachmentTile";
 import { isImage } from "../utils/fileHelpers";
 import { downloadAllAttachments } from "../utils/downloadHelpers";
+
+/* ── Plain Text Converter Helper ────────────────────────── */
+const getPlainText = (htmlOrText) => {
+  if (!htmlOrText) return "";
+  if (!htmlOrText.includes("<")) return htmlOrText;
+  return htmlOrText
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<[^>]+>/g, "");
+};
 
 /* ── Apple-style micro spinner ───────────────────────────── */
 const AppleSpinner = ({ className = "w-3.5 h-3.5" }) => (
@@ -104,6 +116,7 @@ const EditNote = ({ id, onClose }) => {
 
   const [pasteMenuOpen, setPasteMenuOpen] = useState(false);
   const [isPastingLarge, setIsPastingLarge] = useState(false);
+  const [isHighPerfMode, setIsHighPerfMode] = useState(false);
 
   const [toolbarCollapsed, setToolbarCollapsedRaw] = useState(() =>
     localStorage.getItem("kn_toolbarCollapsed") !== "false"
@@ -174,11 +187,7 @@ const EditNote = ({ id, onClose }) => {
 
   /* ── Intercept Large Pastes (85k+ lines) to prevent DOM/Quill freeze ── */
   useEffect(() => {
-    const editor = quillRef.current?.getEditor();
-    if (!editor || !editor.root) return;
-    const root = editor.root;
-
-    const handlePaste = (e) => {
+    const handlePasteGlobal = (e) => {
       const clipboardData = e.clipboardData || window.clipboardData;
       if (!clipboardData) return;
 
@@ -197,18 +206,11 @@ const EditNote = ({ id, onClose }) => {
         e.stopPropagation();
 
         setIsPastingLarge(true);
+        setIsHighPerfMode(true);
+
         setTimeout(() => {
           try {
-            const range = editor.getSelection(true) || { index: editor.getLength() };
-            const escaped = plainText
-              .replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;");
-
-            // Wrap in single pre-formatted element (1 DOM node instead of 85,000 <p> DOM nodes)
-            const htmlSnippet = `<pre style="white-space: pre-wrap; word-break: break-word; font-family: inherit; margin: 0; padding: 0;">${escaped}</pre>`;
-            editor.clipboard.dangerouslyPasteHTML(range.index, htmlSnippet, "user");
-            editor.setSelection(range.index + plainText.length, 0);
+            setContent(plainText);
             hasUserEdited.current = true;
           } catch (err) {
             console.error("Large paste processing error:", err);
@@ -219,8 +221,11 @@ const EditNote = ({ id, onClose }) => {
       }
     };
 
-    root.addEventListener("paste", handlePaste, { capture: true });
-    return () => root.removeEventListener("paste", handlePaste, { capture: true });
+    const container = editorWrapRef.current;
+    if (container) {
+      container.addEventListener("paste", handlePasteGlobal, { capture: true });
+      return () => container.removeEventListener("paste", handlePasteGlobal, { capture: true });
+    }
   }, []);
 
   /* ── MS Word Style Paste Handlers ── */
@@ -413,9 +418,16 @@ const EditNote = ({ id, onClose }) => {
       if (snap.exists()) {
         const data = snap.data();
         setTitle(data.title || "");
-        setContent(data.docsDesc || "");
+        const desc = data.docsDesc || "";
+        setContent(desc);
         setColor(data.color || "default");
         setAttachments(data.attachments || []);
+
+        // Auto-activate High Performance Mode for large code/text notes
+        if (desc.length > 20000 || (desc.match(/\n/g) || []).length > 300) {
+          setIsHighPerfMode(true);
+        }
+
         setTimeout(() => {
           isLoadedRef.current = true;
           hasUserEdited.current = false;
@@ -763,6 +775,20 @@ const EditNote = ({ id, onClose }) => {
                     )}
                   </div>
 
+                  {/* Mode Toggle Button: Rich Text vs Fast Code Mode ⚡ */}
+                  <button
+                    onClick={() => setIsHighPerfMode((prev) => !prev)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold shadow-xs transition-all cursor-pointer ${
+                      isHighPerfMode
+                        ? "bg-amber-500 hover:bg-amber-600 text-white border border-amber-500 font-bold"
+                        : "bg-white dark:bg-[#222533] hover:bg-gray-100 dark:hover:bg-[#2a2e3f] text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/10"
+                    }`}
+                    title={isHighPerfMode ? "Switch to Rich Text Editor" : "Switch to Fast Code/Text Mode (Supports 85k+ lines with zero lag)"}
+                  >
+                    <Code size={13} className={isHighPerfMode ? "text-white" : "text-amber-500"} />
+                    <span className="text-[11px] font-semibold">{isHighPerfMode ? "Fast Code Mode ⚡" : "Rich Text"}</span>
+                  </button>
+
                   {/* Toolbar Toggle Button (T) */}
                   <button
                     onClick={() => setToolbarCollapsed((v) => !v)}
@@ -828,22 +854,53 @@ const EditNote = ({ id, onClose }) => {
                   </button>
                 </div>
 
-                {/* Text Area (Takes 100% Full Height, flex-col so container scrolls) */}
-                <ReactQuill
-                  ref={quillRef}
-                  theme="snow"
-                  value={content}
-                  onChange={(val) => {
-                    setContent(val);
-                    if (isLoadedRef.current && val !== content) {
-                      hasUserEdited.current = true;
-                    }
-                  }}
-                  modules={quillModules}
-                  formats={quillFormats}
-                  placeholder="Start typing here…"
-                  className="flex-1 flex flex-col min-h-0"
-                />
+                {/* Main Editor Canvas (Dual Engine: High Performance Code Editor vs Quill Rich Text) */}
+                {isHighPerfMode ? (
+                  <textarea
+                    value={getPlainText(content)}
+                    onChange={(e) => {
+                      setContent(e.target.value);
+                      if (isLoadedRef.current) hasUserEdited.current = true;
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Tab") {
+                        e.preventDefault();
+                        const start = e.target.selectionStart;
+                        const end = e.target.selectionEnd;
+                        const val = e.target.value;
+                        const updated = val.substring(0, start) + "  " + val.substring(end);
+                        setContent(updated);
+                        setTimeout(() => {
+                          if (e.target) {
+                            e.target.selectionStart = e.target.selectionEnd = start + 2;
+                          }
+                        }, 0);
+                      }
+                    }}
+                    spellCheck={false}
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    placeholder="Paste or type large code/text document here…"
+                    className="flex-1 w-full p-4 font-mono text-xs sm:text-sm text-gray-900 dark:text-gray-100 bg-transparent outline-none resize-none leading-relaxed"
+                    style={{ zoom: zoomLevel / 100 }}
+                  />
+                ) : (
+                  <ReactQuill
+                    ref={quillRef}
+                    theme="snow"
+                    value={content}
+                    onChange={(val) => {
+                      setContent(val);
+                      if (isLoadedRef.current && val !== content) {
+                        hasUserEdited.current = true;
+                      }
+                    }}
+                    modules={quillModules}
+                    formats={quillFormats}
+                    placeholder="Start typing here…"
+                    className="flex-1 flex flex-col min-h-0"
+                  />
+                )}
 
                 {/* Subtle Background Watermark / Placeholder Hint inside Text Area (Bottom-Left) */}
                 {attachments.length === 0 && (
