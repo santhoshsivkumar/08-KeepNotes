@@ -457,13 +457,11 @@ const EditNote = ({ id, onClose }) => {
       return att;
     });
 
-    // Safeguard for Firestore document size limit (1MB max per document)
+    // Save content as-is without adding any extra text or warning tags to the note body
     let docsDescToSave = content;
     const contentBytes = new Blob([content || ""]).size;
-    if (contentBytes > 800000) {
-      const mbSize = (contentBytes / (1024 * 1024)).toFixed(2);
-      docsDescToSave = content.substring(0, 700000) +
-        `<p style="color: #854d0e; background: #fef9c3; padding: 8px 12px; border-radius: 6px; margin-top: 12px; font-size: 12px; font-weight: 600;">⚡ Large Note Mode: Cloud sync saved first 700KB (${mbSize}MB total preserved in editor). Full text active in editor.</p>`;
+    if (contentBytes > 950000) {
+      docsDescToSave = content.substring(0, 950000);
     }
 
     try {
