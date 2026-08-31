@@ -46,8 +46,7 @@ const FileCard = ({
 
   return (
     <div
-      className="group bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.06] rounded-2xl hover:border-brand-500/50 transition-all duration-200 cursor-pointer p-4 flex flex-col justify-between h-full hover:-translate-y-0.5 shadow-sm"
-      onClick={() => onPreview && onPreview(file)}
+      className="group bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.06] rounded-2xl hover:border-brand-500/50 transition-all duration-200 p-4 flex flex-col justify-between h-full hover:-translate-y-0.5 shadow-sm"
     >
       <div>
         {/* Top row icon & actions (Eye Preview + Download) */}

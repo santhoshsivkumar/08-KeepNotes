@@ -91,8 +91,12 @@ export function useUpload() {
       setProgress(5);
 
       try {
-        // Attempt cloud upload via Netlify proxy (supports cross-device download)
-        const cloudResult = await uploadViaProxy(file, noteId, (pct) => setProgress(pct));
+        // Attempt cloud upload via Netlify proxy with 2s timeout fallback
+        const proxyPromise = uploadViaProxy(file, noteId, (pct) => setProgress(pct));
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Proxy timeout")), 2000)
+        );
+        const cloudResult = await Promise.race([proxyPromise, timeoutPromise]);
         setUploading(false);
         setProgress(100);
         resolve(cloudResult);

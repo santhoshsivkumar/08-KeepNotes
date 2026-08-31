@@ -18,6 +18,8 @@ import {
   X,
   Menu,
   Upload,
+  PanelLeftOpen,
+  PanelLeftClose,
 } from "lucide-react";
 import {
   addDoc,
@@ -88,6 +90,8 @@ const NotesHome = () => {
   const [docId, setDocId]             = useState("");
   const [docsData, setDocsData]       = useState([]);
   const [independentFiles, setIndependentFiles] = useState([]);
+  const [folders, setFolders]         = useState([]);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const [loading, setLoading]         = useState(true);
   const [isCreating, setIsCreating]   = useState(false);
   const [deletingId, setDeletingId]   = useState(null);
@@ -105,9 +109,32 @@ const NotesHome = () => {
 
   // All Notes toolbar state
   const [notesSearch, setNotesSearch] = useState("");
-  const [notesSort, setNotesSort] = useState("updated");
-  const [notesViewMode, setNotesViewMode] = useState("grid");
+  const [notesSort, setNotesSort] = useState(() => {
+    try {
+      return localStorage.getItem("tp-notes-sort") || "updated";
+    } catch {
+      return "updated";
+    }
+  });
+
+  const [notesViewMode, setNotesViewMode] = useState(() => {
+    try {
+      return localStorage.getItem("tp-notes-viewMode") || "grid";
+    } catch {
+      return "grid";
+    }
+  });
+
   const [showNotesSortMenu, setShowNotesSortMenu] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("tp-notes-sort", notesSort);
+      localStorage.setItem("tp-notes-viewMode", notesViewMode);
+    } catch {
+      // ignore
+    }
+  }, [notesSort, notesViewMode]);
 
   // Notebooks list
   const [notebooks, setNotebooks] = useState(() => {
@@ -127,6 +154,7 @@ const NotesHome = () => {
 
   const notesCollectionRef = collection(database, "docsData");
   const filesCollectionRef = collection(database, "filesData");
+  const foldersCollectionRef = collection(database, "foldersData");
 
   // Save notebooks to localStorage when changed
   useEffect(() => {
@@ -251,27 +279,28 @@ const NotesHome = () => {
   const addData = () => {
     if (isCreating) return;
 
-    const titleToSave = quickTitle.trim();
-
     setIsCreating(true);
-    addDoc(notesCollectionRef, {
-      title:       titleToSave,
-      docsDesc:    "",
-      color:       "default",
+    const docObj = {
+      title: quickTitle.trim(),
+      docsDesc: "",
+      color: "default",
       attachments: [],
-      starred:     false,
-      deleted:     false,
-      notebook:    selectedNotebookForNew || null,
-      createdAt:   new Date(),
-      updatedAt:   new Date(),
-    })
-      .then((docRef) => {
-        setDocId(docRef.id);
-        setOpen(false);
-        setQuickTitle("");
+      starred: false,
+      deleted: false,
+      notebook: activeNotebook || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    addDoc(notesCollectionRef, docObj)
+      .then((res) => {
+        setDocId(res.id);
         setOpenEditor(true);
+        setQuickTitle("");
       })
-      .catch(() => alert("Could not create note. Please try again."))
+      .catch(() => {
+        alert("Error creating note. Please try again.");
+      })
       .finally(() => setIsCreating(false));
   };
 
@@ -286,25 +315,86 @@ const NotesHome = () => {
     if (!files.length) return;
 
     const file = files[0];
+    setIsUploadingFiles(true);
     try {
-      const uploaded = await uploadFile(file);
-      // Save independent file record to Firestore filesData (noteId: null)
+      let uploaded;
+      try {
+        uploaded = await uploadFile(file);
+      } catch (err) {
+        uploaded = {
+          name: file.name,
+          url: URL.createObjectURL(file),
+          size: file.size,
+          type: file.type,
+        };
+      }
+
+      let safeUrl = uploaded?.url || "";
+      if (safeUrl.startsWith("data:") && safeUrl.length > 500000) {
+        safeUrl = URL.createObjectURL(file);
+      }
+
       await addDoc(filesCollectionRef, {
-        name: uploaded.name,
-        url: uploaded.url,
-        size: uploaded.size,
-        type: uploaded.type,
+        name: uploaded?.name || file.name,
+        url: safeUrl,
+        size: uploaded?.size || file.size || 0,
+        type: uploaded?.type || file.type || "",
         noteId: null,
         noteTitle: null,
         createdAt: new Date(),
       });
-      // Switch active view directly to Files page
+
       setActiveNav("files");
       setActiveNotebook(null);
     } catch (err) {
-      alert("Failed to upload file.");
+      console.error("Upload file error:", err);
+    } finally {
+      setIsUploadingFiles(false);
     }
     e.target.value = "";
+  };
+
+  /* ── Direct Drag & Drop Handler for Files Page ────────────── */
+  const handleDropFiles = async (filesList, targetFolder = null) => {
+    const files = Array.from(filesList || []);
+    if (!files.length) return;
+    setIsUploadingFiles(true);
+    try {
+      for (const file of files) {
+        let uploaded;
+        try {
+          uploaded = await uploadFile(file);
+        } catch (e) {
+          uploaded = {
+            name: file.name,
+            url: URL.createObjectURL(file),
+            size: file.size,
+            type: file.type,
+          };
+        }
+
+        let safeUrl = uploaded?.url || "";
+        if (safeUrl.startsWith("data:") && safeUrl.length > 500000) {
+          safeUrl = URL.createObjectURL(file);
+        }
+
+        await addDoc(filesCollectionRef, {
+          name: uploaded?.name || file.name,
+          url: safeUrl,
+          size: uploaded?.size || file.size || 0,
+          type: uploaded?.type || file.type || "",
+          noteId: null,
+          noteTitle: null,
+          folderId: targetFolder ? targetFolder.id : null,
+          folderName: targetFolder ? targetFolder.name : null,
+          createdAt: new Date(),
+        });
+      }
+    } catch (err) {
+      console.error("Drop files upload error:", err);
+    } finally {
+      setIsUploadingFiles(false);
+    }
   };
 
   /* ── Realtime Snapshot Listener for Notes ─── */
@@ -352,6 +442,34 @@ const NotesHome = () => {
     );
     return () => unsubscribe();
   }, []);
+
+  /* ── Realtime Snapshot Listener for Folders ─────────────── */
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      foldersCollectionRef,
+      (snapshot) => {
+        const items = snapshot.docs.map((d) => ({ ...d.data(), id: d.id }));
+        setFolders(items);
+      },
+      (err) => {
+        console.warn("Could not listen to foldersData collection:", err);
+      }
+    );
+    return () => unsubscribe();
+  }, []);
+
+  const handleCreateFolder = () => {
+    const name = prompt("Enter folder name:");
+    if (name && name.trim()) {
+      addDoc(foldersCollectionRef, {
+        name: name.trim(),
+        createdAt: new Date(),
+      }).catch((err) => {
+        console.error("Failed to create folder:", err);
+        alert("Failed to create folder.");
+      });
+    }
+  };
 
   /* ── Toggle Star Handler ───────────────────────────────── */
   const handleToggleStar = async (e, note) => {
@@ -684,6 +802,7 @@ const NotesHome = () => {
         onAddNotebook={handleAddNotebook}
         onDeleteNotebook={handleDeleteNotebook}
         onNewNote={() => handleOpenNewNoteModal()}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         onToggleTheme={toggle}
         isDark={isDark}
         onOpenSettings={() => setIsSettingsOpen(true)}
@@ -718,25 +837,51 @@ const NotesHome = () => {
 
         {/* ── Main View Container ────────────────────────── */}
         <main className="px-4 sm:px-8 py-6 flex-1">
+          {/* ── GLOBAL LOADING SPINNER FOR ALL NON-FILES TABS ──── */}
+          {loading && activeNav !== "files" && (
+            <div className="min-h-[calc(100vh-200px)] flex flex-col items-center justify-center -mt-8 animate-fade-in">
+              <AppleSpinner className="w-8 h-8 text-brand-500 mb-3" />
+              <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">
+                Loading workspace…
+              </span>
+            </div>
+          )}
 
           {/* ── 1. FILES DESTINATION PAGE ───────────────── */}
           {activeNav === "files" && (
             <FilesView
               docsData={activeNotes}
               independentFiles={independentFiles}
+              folders={folders}
+              loading={loading}
+              isUploadingFiles={isUploadingFiles}
+              isSidebarCollapsed={isSidebarCollapsed}
+              onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
               onFilePreview={(file) => setPreviewFile(file)}
               onOpenNote={openNote}
               onUploadFile={() => globalFileInputRef.current?.click()}
+              onDropFiles={handleDropFiles}
+              onCreateFolder={handleCreateFolder}
             />
           )}
 
-          {/* ── 2. HOME DASHBOARD VIEW (Clean Dashboard with Recents only) ── */}
-          {activeNav === "home" && !activeNotebook && (
+          {/* ── 2. HOME DASHBOARD VIEW ───────────────── */}
+
+          {activeNav === "home" && !activeNotebook && !loading && (
             <div>
               {/* Section 1: Recent Notes */}
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    {isSidebarCollapsed && (
+                      <button
+                        onClick={() => setIsSidebarCollapsed(false)}
+                        className="hidden lg:flex p-1 rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] transition-all cursor-pointer mr-0.5"
+                        title="Open Sidebar"
+                      >
+                        <Menu size={18} />
+                      </button>
+                    )}
                     <Clock size={16} className="text-brand-500" />
                     Recent Notes
                   </h2>
@@ -748,14 +893,7 @@ const NotesHome = () => {
                   </button>
                 </div>
 
-                {loading ? (
-                  <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
-                    <AppleSpinner className="w-7 h-7 text-brand-500 mb-2" />
-                    <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">
-                      Loading notes…
-                    </span>
-                  </div>
-                ) : activeNotes.length === 0 ? (
+                {activeNotes.length === 0 ? (
                   <div className="p-8 text-center bg-white/[0.02] border border-black/[0.04] dark:border-white/[0.06] rounded-2xl">
                     <p className="text-sm text-gray-400 mb-3">No notes created yet.</p>
                     <button
@@ -815,11 +953,20 @@ const NotesHome = () => {
           )}
 
           {/* ── 3. ALL NOTES / STARRED / TRASH / NOTEBOOK VIEWS ── */}
-          {activeNav !== "home" && activeNav !== "files" && (
+          {activeNav !== "home" && activeNav !== "files" && !loading && (
             <div>
               {/* Context Header + Count Badge & Toolbar */}
               <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  {isSidebarCollapsed && (
+                    <button
+                      onClick={() => setIsSidebarCollapsed(false)}
+                      className="hidden lg:flex p-1 rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] transition-all cursor-pointer mr-0.5"
+                      title="Open Sidebar"
+                    >
+                      <Menu size={18} />
+                    </button>
+                  )}
                   {activeNav === "starred" && <Star size={18} className="text-yellow-400 fill-yellow-400" />}
                   {activeNav === "trash" && <Trash2 size={18} className="text-red-400" />}
                   {activeNav === "starred"
@@ -915,15 +1062,7 @@ const NotesHome = () => {
                 )}
               </div>
 
-              {/* Loading Spinner */}
-              {loading && (
-                <div className="flex flex-col items-center justify-center py-28 animate-fade-in">
-                  <AppleSpinner className="w-8 h-8 text-brand-500 mb-3" />
-                  <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">
-                    Loading…
-                  </span>
-                </div>
-              )}
+
 
               {/* Empty State (Vertically & Horizontally Centered in Right Panel) */}
               {!loading && displayedNotes.length === 0 && (

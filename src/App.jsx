@@ -1,6 +1,7 @@
 import "./App.css";
-
+import { useState } from "react";
 import NotesHome from "./components/NotesHome";
+import LockScreen from "./components/auth/LockScreen";
 import {
   createBrowserRouter,
   RouterProvider,
@@ -18,6 +19,18 @@ const router = createBrowserRouter(
 );
 
 const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      return sessionStorage.getItem("tp_authenticated") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  if (!isAuthenticated) {
+    return <LockScreen onUnlock={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <ThemeProvider>
       <RouterProvider router={router} />

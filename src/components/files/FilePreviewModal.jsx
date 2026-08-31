@@ -2,6 +2,13 @@ import { useState, useEffect } from "react";
 import { X, Download, ExternalLink, FileText, ZoomIn, ZoomOut, RotateCcw, AlertCircle, File, Image as ImageIcon, Video, Music, Code, ArrowLeft } from "lucide-react";
 import { formatFileSize } from "../../utils/fileHelpers";
 
+const TEXT_CODE_EXTENSIONS = new Set([
+  "txt", "text", "md", "markdown", "rst", "rtf", "log", "csv", "tsv",
+  "html", "htm", "css", "scss", "sass", "less", "js", "jsx", "ts", "tsx", "mjs", "cjs", "vue", "svelte", "php",
+  "json", "json5", "jsonc", "xml", "yaml", "yml", "toml", "env", "ini", "conf", "config", "properties", "graphql", "gql", "sql",
+  "py", "java", "cpp", "c", "h", "hpp", "cc", "cs", "rb", "go", "rs", "sh", "bash", "zsh", "bat", "cmd", "ps1", "swift", "kt", "kts", "scala", "dart", "lua", "r", "perl", "pl", "asm", "dockerfile", "makefile", "gitignore"
+]);
+
 /**
  * FilePreviewModal — High performance, real file preview modal for ThoughtPad.
  * Supports PDFs (iframe/embed), Images (zoom/fit), Videos, Audio, Text/Code files,
@@ -21,10 +28,24 @@ const FilePreviewModal = ({ file, isOpen, onClose, onOpenNote }) => {
 
     if (!file || !file.url) return;
 
-    const ext = (file.extension || (file.name.includes(".") ? file.name.split(".").pop() : "")).toLowerCase();
-    const isTextFile = ["txt", "js", "jsx", "ts", "tsx", "json", "html", "css", "py", "sh", "md", "log", "csv", "xml", "env"].includes(ext);
+    const extLower = (file.extension || (file.name?.includes(".") ? file.name.split(".").pop() : "")).toLowerCase();
+    const isText = TEXT_CODE_EXTENSIONS.has(extLower) || file.url.startsWith("data:text/") || file.url.startsWith("data:application/json") || file.url.startsWith("data:application/sql") || (file.type && (file.type.startsWith("text/") || file.type.includes("json") || file.type.includes("sql")));
 
-    if (isTextFile && file.url.startsWith("http")) {
+    if (isText) {
+      if (file.url.startsWith("data:")) {
+        try {
+          const parts = file.url.split(",");
+          if (parts.length > 1) {
+            const isBase64 = file.url.includes(";base64");
+            const decoded = isBase64 ? atob(parts[1]) : decodeURIComponent(parts[1]);
+            setTextContent(decoded.slice(0, 100000));
+            return;
+          }
+        } catch (e) {
+          console.warn("Failed to decode data URL text:", e);
+        }
+      }
+
       setLoadingText(true);
       fetch(file.url)
         .then((res) => {
@@ -49,7 +70,7 @@ const FilePreviewModal = ({ file, isOpen, onClose, onOpenNote }) => {
   const isPdf = ext === "PDF";
   const isVideo = ["MP4", "WEBM", "MOV", "MKV", "AVI"].includes(ext);
   const isAudio = ["MP3", "WAV", "OGG", "M4A", "AAC"].includes(ext);
-  const isCodeOrText = ["TXT", "JS", "JSX", "TS", "TSX", "JSON", "HTML", "CSS", "PY", "SH", "MD", "LOG", "CSV", "XML", "ENV"].includes(ext);
+  const isCodeOrText = TEXT_CODE_EXTENSIONS.has(ext.toLowerCase()) || (file.url && (file.url.startsWith("data:text/") || file.url.startsWith("data:application/json") || file.url.startsWith("data:application/sql"))) || (file.type && (file.type.startsWith("text/") || file.type.includes("json") || file.type.includes("sql")));
 
   const handleDownload = (e) => {
     e?.stopPropagation();

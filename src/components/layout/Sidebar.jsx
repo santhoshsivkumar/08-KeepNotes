@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Home, FileText, Paperclip, Star, Trash2, Plus, X, Sun, Moon, Settings } from "lucide-react";
+import { Home, FileText, Paperclip, Star, Trash2, Plus, X, Sun, Moon, Settings, Lock, PanelLeftClose } from "lucide-react";
 
 /**
  * Sidebar — Left navigation panel for ThoughtPad.
@@ -9,6 +9,7 @@ const Sidebar = ({
   isOpen = false,
   onClose,
   isCollapsed = false,
+  onToggleCollapse,
   activeNav = "home",
   onNavChange,
   notebooks = [],
@@ -70,6 +71,16 @@ const Sidebar = ({
             </div>
             <span className="text-base font-bold text-gray-900 dark:text-white tracking-tight">ThoughtPad</span>
           </div>
+
+          {/* Desktop Sidebar Collapse Toggle */}
+          <button
+            onClick={onToggleCollapse}
+            className="hidden lg:flex p-1.5 rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] transition-all cursor-pointer"
+            title="Collapse Sidebar"
+            aria-label="Collapse Sidebar"
+          >
+            <PanelLeftClose size={18} />
+          </button>
 
           {/* Close button for mobile drawer only */}
           <button
@@ -236,6 +247,18 @@ const Sidebar = ({
           >
             {isDark ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} className="text-brand-500" />}
             <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+          </button>
+
+          {/* Lock App Button */}
+          <button
+            onClick={() => {
+              try { sessionStorage.removeItem("tp_authenticated"); } catch (e) {}
+              window.location.reload();
+            }}
+            className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-red-400 bg-black/[0.03] dark:bg-white/[0.04] hover:bg-red-500/10 border border-black/[0.05] dark:border-white/[0.06] transition-all cursor-pointer shrink-0"
+            title="Lock ThoughtPad Workspace"
+          >
+            <Lock size={16} />
           </button>
 
           {/* Settings Gear Button */}
