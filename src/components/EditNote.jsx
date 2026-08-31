@@ -166,11 +166,15 @@ const EditNote = ({ id, onClose }) => {
     return () => observer.disconnect();
   }, []);
 
-  // Dynamically calculate max visible attachment tiles based on container width
+  // Dynamically calculate visible attachment tiles based on container width (0, 1, or 2)
   const maxVisibleTiles = useMemo(() => {
-    const available = statusBarWidth - 240;
-    if (available <= 0) return 1;
-    return Math.max(1, Math.floor(available / 215));
+    // Reserved width for right side controls (stats pill ~220px, Copy ~75px, Save ~80px, padding/gaps ~45px) + expand button ~45px = ~465px
+    const reservedWidth = 465;
+    const availableForTiles = statusBarWidth - reservedWidth;
+    // Each tile is ~180px wide.
+    if (availableForTiles >= 360) return 2; // Fits 2 full tiles safely (width >= 825px)
+    if (availableForTiles >= 180) return 1; // Fits 1 tile safely (width >= 645px)
+    return 0; // If width < 645px, 0 tiles inline; neatly collapse to single "+N files" pill
   }, [statusBarWidth]);
 
   // Close paste dropdown on click outside (attachment panel only closes on explicit X button click)
@@ -971,7 +975,7 @@ const EditNote = ({ id, onClose }) => {
             {/* Left: Bottom Attachments Bar (Dynamic capacity based on window width) */}
             <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden py-0.5">
               {uploading && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/20 rounded-full text-brand-600 dark:text-brand-400 font-semibold text-xs shrink-0">
+                <div className="h-9 flex items-center gap-1.5 px-3 bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/20 rounded-lg text-brand-600 dark:text-brand-400 font-semibold text-xs shrink-0">
                   <AppleSpinner className="w-3.5 h-3.5 text-brand-500" />
                   <span>Uploading {progress}%</span>
                 </div>
@@ -997,11 +1001,21 @@ const EditNote = ({ id, onClose }) => {
               {attachments.length > maxVisibleTiles && (
                 <button
                   onClick={() => setShowAttachmentPanel(!showAttachmentPanel)}
-                  className="p-1.5 rounded-lg bg-white/90 hover:bg-white dark:bg-[#222533] dark:hover:bg-[#2a2e3f] text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/10 shadow-xs transition-all cursor-pointer shrink-0 flex items-center gap-1 text-xs font-semibold"
-                  title="View all overflow attachments"
+                  className="h-9 px-2.5 rounded-lg bg-white/90 hover:bg-white dark:bg-[#222533] dark:hover:bg-[#2a2e3f] text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/10 shadow-xs transition-all cursor-pointer shrink-0 flex items-center gap-1.5 text-xs font-semibold"
+                  title="View all attachments in popover panel"
                 >
-                  <ChevronUp size={13} className={`transition-transform ${showAttachmentPanel ? "rotate-180" : ""}`} />
-                  <span className="text-[10px] text-brand-500 font-bold">+{attachments.length - maxVisibleTiles}</span>
+                  {maxVisibleTiles === 0 ? (
+                    <>
+                      <Paperclip size={13} className="text-brand-500" />
+                      <span>{attachments.length} file{attachments.length > 1 ? "s" : ""}</span>
+                      <ChevronUp size={13} className={`transition-transform text-gray-400 ${showAttachmentPanel ? "rotate-180" : ""}`} />
+                    </>
+                  ) : (
+                    <>
+                      <ChevronUp size={13} className={`transition-transform ${showAttachmentPanel ? "rotate-180" : ""}`} />
+                      <span className="text-[10px] text-brand-500 font-bold">+{attachments.length - maxVisibleTiles}</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>
@@ -1009,7 +1023,7 @@ const EditNote = ({ id, onClose }) => {
             {/* Far Right: Line/Word/Char Count Badge, Direct Copy Button & Save Button */}
             <div className="flex items-center gap-2 shrink-0">
               {/* Line Count, Word Count & Character Count Pill */}
-              <div className="hidden sm:flex items-center gap-1.5 font-mono text-[11px] font-medium text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-[#222533] border border-gray-200 dark:border-white/10 px-2.5 py-1 rounded-lg shadow-xs shrink-0 select-none">
+              <div className="hidden sm:flex h-9 items-center gap-1.5 font-mono text-[11px] font-medium text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-[#222533] border border-gray-200 dark:border-white/10 px-3 rounded-lg shadow-xs shrink-0 select-none">
                 <span title="Total lines in note">
                   <strong className="text-brand-600 dark:text-brand-400 font-bold">{lineCount.toLocaleString()}</strong> lines
                 </span>
@@ -1025,7 +1039,7 @@ const EditNote = ({ id, onClose }) => {
 
               <button
                 onClick={handleCopy}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer active:scale-95 ${
+                className={`h-9 flex items-center gap-1.5 px-3 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer active:scale-95 ${
                   copiedText
                     ? "bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500"
                     : "bg-white/90 hover:bg-white dark:bg-[#222533] dark:hover:bg-[#2a2e3f] text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/10"
@@ -1040,7 +1054,7 @@ const EditNote = ({ id, onClose }) => {
               <button
                 onClick={async () => { await saveImmediately(); onClose(); }}
                 disabled={saving}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer ${
+                className={`h-9 flex items-center gap-1.5 px-4 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer ${
                   saved
                     ? "bg-emerald-600 text-white"
                     : "bg-brand-500 hover:bg-brand-600 text-white active:scale-95 disabled:opacity-50"

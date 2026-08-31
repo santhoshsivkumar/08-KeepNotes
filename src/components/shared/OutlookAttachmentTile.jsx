@@ -10,7 +10,7 @@ import { getFileIcon, formatFileSize, isImage } from "../../utils/fileHelpers";
 import { downloadFile } from "../../utils/downloadHelpers";
 
 /**
- * OutlookAttachmentTile — Ultra-compact attachment tile card with exposed action icons.
+ * OutlookAttachmentTile — Compact attachment tile card with fixed width and clean text truncation.
  */
 const OutlookAttachmentTile = ({
   attachment,
@@ -31,9 +31,9 @@ const OutlookAttachmentTile = ({
   };
 
   return (
-    <div className="group relative flex items-center justify-between gap-2 px-2 py-1 rounded-md border text-left transition-all duration-150 bg-[#f0f4f9] hover:bg-[#e4ebf5] border-[#d0d8e5] dark:bg-[#202330] dark:hover:bg-[#282c3d] dark:border-white/10 shadow-xs max-w-[210px] sm:max-w-[230px]">
+    <div className="group relative h-9 w-[170px] sm:w-[185px] shrink-0 flex items-center justify-between gap-1.5 px-2 rounded-lg border text-left transition-all duration-150 bg-[#f0f4f9] hover:bg-[#e4ebf5] border-[#d0d8e5] dark:bg-[#202330] dark:hover:bg-[#282c3d] dark:border-white/10 shadow-xs overflow-hidden select-none">
       
-      {/* Thumbnail + Name */}
+      {/* Thumbnail + Name & Size */}
       <div
         onClick={(e) => {
           e.preventDefault();
@@ -41,7 +41,7 @@ const OutlookAttachmentTile = ({
           if (onPreview) onPreview(attachment);
           else if (attachment.url) window.open(attachment.url, "_blank");
         }}
-        className="flex items-center gap-1.5 min-w-0 cursor-pointer flex-1"
+        className="flex items-center gap-1.5 min-w-0 cursor-pointer flex-1 overflow-hidden"
         title={`Click to preview ${attachment.name}`}
       >
         <div className="w-5 h-5 rounded shrink-0 flex items-center justify-center overflow-hidden bg-white/80 dark:bg-black/40 border border-black/5 dark:border-white/10">
@@ -58,18 +58,18 @@ const OutlookAttachmentTile = ({
           )}
         </div>
 
-        <div className="flex flex-col min-w-0">
+        <div className="flex flex-col min-w-0 flex-1 overflow-hidden justify-center">
           <span className="text-[11px] font-semibold text-gray-800 dark:text-gray-100 truncate leading-tight">
             {attachment.name}
           </span>
-          <span className="text-[9px] text-gray-500 dark:text-gray-400 leading-none mt-0.5">
+          <span className="text-[9px] text-gray-500 dark:text-gray-400 truncate leading-none mt-0.5">
             {formatFileSize(attachment.size)}
           </span>
         </div>
       </div>
 
       {/* Exposed Action Icons directly on Card */}
-      <div className="flex items-center gap-0.5 shrink-0 z-30">
+      <div className="flex items-center gap-0.5 shrink-0 z-30 pl-0.5 bg-[#f0f4f9] group-hover:bg-[#e4ebf5] dark:bg-[#202330] dark:group-hover:bg-[#282c3d] transition-colors">
         {/* Preview */}
         <button
           type="button"

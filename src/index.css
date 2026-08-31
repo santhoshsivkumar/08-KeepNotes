@@ -207,3 +207,48 @@ body {
   color: #ffffff;
 }
 
+/* ============================================================
+   Note Card Dark Mode Colors
+   Rich, vibrant deep tones so cards are clearly visible on
+   the dark background instead of the invisible light pastels.
+   ============================================================ */
+
+.dark .note-card-yellow {
+  background-color: hsl(45, 70%, 18%) !important;
+  border-color:     hsl(45, 70%, 30%) !important;
+}
+.dark .note-card-green {
+  background-color: hsl(152, 45%, 16%) !important;
+  border-color:     hsl(152, 45%, 28%) !important;
+}
+.dark .note-card-blue {
+  background-color: hsl(210, 65%, 18%) !important;
+  border-color:     hsl(210, 65%, 32%) !important;
+}
+.dark .note-card-pink {
+  background-color: hsl(330, 55%, 20%) !important;
+  border-color:     hsl(330, 55%, 34%) !important;
+}
+.dark .note-card-purple {
+  background-color: hsl(275, 50%, 20%) !important;
+  border-color:     hsl(275, 50%, 34%) !important;
+}
+.dark .note-card-orange {
+  background-color: hsl(28, 65%, 18%) !important;
+  border-color:     hsl(28, 65%, 30%) !important;
+}
+.dark .note-card-teal {
+  background-color: hsl(175, 45%, 16%) !important;
+  border-color:     hsl(175, 45%, 28%) !important;
+}
+
+/* Ensure text inside colored note cards stays readable in dark mode */
+.dark .note-card-yellow,
+.dark .note-card-green,
+.dark .note-card-blue,
+.dark .note-card-pink,
+.dark .note-card-purple,
+.dark .note-card-orange,
+.dark .note-card-teal {
+  color: hsl(220, 15%, 90%);
+}
