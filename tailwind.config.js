@@ -23,6 +23,12 @@ export default {
           bg:      'hsl(230, 20%, 97%)',
           card:    'hsl(0, 0%, 100%)',
           input:   'hsl(230, 15%, 96%)',
+          // Dark mode surfaces
+          'dark-bg':      '#111318',
+          'dark-sidebar': '#0d0f14',
+          'dark-card':    '#16181f',
+          'dark-input':   '#1a1c24',
+          'dark-elevated':'#1c1e28',
         },
         note: {
           yellow:  'hsl(45,  96%, 92%)',

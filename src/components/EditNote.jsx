@@ -27,12 +27,17 @@ import {
   ChevronDown,
   ChevronUp,
   Code,
+  Star,
+  Palette,
+  Folder,
+  FolderPlus,
 } from "lucide-react";
 import { useUpload } from "../hooks/useUpload";
 import { useClipboard } from "../hooks/useClipboard";
 import { useTheme } from "../hooks/useTheme";
 import MediaDropzone from "./shared/MediaDropzone";
 import OutlookAttachmentTile from "./shared/OutlookAttachmentTile";
+import FilePreviewModal from "./files/FilePreviewModal";
 import { isImage } from "../utils/fileHelpers";
 import { downloadAllAttachments } from "../utils/downloadHelpers";
 import {
@@ -92,10 +97,28 @@ const quillFormats = [
 ];
 
 /* ── Main Component ─────────────────────────────────────── */
-const EditNote = ({ id, onClose }) => {
+const EditNote = ({ id, onClose, notebooks = [] }) => {
   const [title, setTitle]             = useState("");
   const [content, setContent]         = useState("");
   const [color, setColor]             = useState("default");
+  const [starred, setStarred]         = useState(false);
+  const [notebook, setNotebook]       = useState(null);
+  const [fetchedNotebooks, setFetchedNotebooks] = useState([]);
+  const effectiveNotebooks = notebooks && notebooks.length > 0 ? notebooks : fetchedNotebooks;
+
+  useEffect(() => {
+    if (notebooks && notebooks.length > 0) return;
+    try {
+      const notebooksColRef = collection(database, "notebooks");
+      const unsubscribe = onSnapshot(notebooksColRef, (snap) => {
+        const list = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
+        setFetchedNotebooks(list);
+      });
+      return () => unsubscribe();
+    } catch {
+      // Ignore fallback errors
+    }
+  }, [notebooks]);
   const [attachments, setAttachments] = useState([]);
   const [saving, setSaving]           = useState(false);
   const [saved, setSaved]             = useState(false);
@@ -116,6 +139,8 @@ const EditNote = ({ id, onClose }) => {
   };
 
   const [pasteMenuOpen, setPasteMenuOpen] = useState(false);
+  const [notebookMenuOpen, setNotebookMenuOpen] = useState(false);
+  const [colorMenuOpen, setColorMenuOpen] = useState(false);
   const [isPastingLarge, setIsPastingLarge] = useState(false);
   const [isHighPerfMode, setIsHighPerfMode] = useState(false);
 
@@ -129,6 +154,7 @@ const EditNote = ({ id, onClose }) => {
   };
 
   const [showAttachmentPanel, setShowAttachmentPanel] = useState(false);
+  const [modalPreviewFile, setModalPreviewFile] = useState(null);
 
   const [pasteMode, setPasteModeRaw] = useState(() =>
     localStorage.getItem("kn_pasteMode") || "formatted"
@@ -426,6 +452,8 @@ const EditNote = ({ id, onClose }) => {
         const desc = data.docsDesc || "";
         setContent(desc);
         setColor(data.color || "default");
+        setStarred(Boolean(data.starred));
+        setNotebook(data.notebook || null);
         setAttachments(data.attachments || []);
 
         // Auto-activate High Performance Mode for control characters or large code/text notes
@@ -443,7 +471,7 @@ const EditNote = ({ id, onClose }) => {
   }, [id]);
 
   /* ── Instant Direct Save Function ─────────────────────── */
-  const saveImmediately = useCallback(async (customAttachments = null) => {
+  const saveImmediately = useCallback(async (customAttachments = null, customNotebook = undefined) => {
     if (!id) return;
     clearTimeout(saveTimer.current);
     setSaving(true);
@@ -451,6 +479,7 @@ const EditNote = ({ id, onClose }) => {
     setSaveError(null);
 
     const attList = customAttachments ?? attachments;
+    const safeNotebook = customNotebook !== undefined ? customNotebook : notebook;
     const safeAttachments = (attList || []).map((att) => {
       if (att.url && att.url.length > 700000) {
         return {
@@ -473,6 +502,8 @@ const EditNote = ({ id, onClose }) => {
         title,
         docsDesc: docsDescToSave,
         color,
+        starred: Boolean(starred),
+        notebook: safeNotebook || null,
         attachments: safeAttachments,
         updatedAt: new Date(),
       });
@@ -485,7 +516,7 @@ const EditNote = ({ id, onClose }) => {
       setSaving(false);
       setSaveError("Error saving note");
     }
-  }, [id, title, content, color, attachments]);
+  }, [id, title, content, color, notebook, attachments]);
 
   /* ── Save-on-Close & Manual Save Handler (Zero Quota Burn) ── */
   const handleSafeClose = useCallback(() => {
@@ -614,12 +645,12 @@ const EditNote = ({ id, onClose }) => {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fade-in"
+        className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[99999] animate-fade-in"
         onClick={handleSafeClose}
       />
 
       {/* Modal Window */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4 pointer-events-none">
         <div
           ref={editorWrapRef}
           className={`relative rounded-2xl shadow-modal flex flex-col pointer-events-auto transition-all ${
@@ -644,10 +675,10 @@ const EditNote = ({ id, onClose }) => {
               <span>Formatting and pasting large document (85,000+ lines)…</span>
             </div>
           )}
-          {/* ── 1. Top Header Bar (Wireframe Layout: Left Title Area, Center Controls/Options, Right Window Options) ── */}
+          {/* ── 1. Top Header Bar (Full-Width Title & Window Controls) ── */}
           <div className="relative flex items-center justify-between px-4 py-2 shrink-0 border-b border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] gap-3">
-            {/* Left: Title Area (Truncates with ... before centered color swatches) */}
-            <div className="min-w-[100px] max-w-[160px] sm:max-w-[220px] md:max-w-[260px] shrink-0">
+            {/* Left: Full-Width Title Area */}
+            <div className="flex-1 min-w-0 mr-2">
               <input
                 type="text"
                 value={title}
@@ -655,35 +686,30 @@ const EditNote = ({ id, onClose }) => {
                   setTitle(e.target.value);
                   if (isLoadedRef.current) hasUserEdited.current = true;
                 }}
-                placeholder="Title..."
+                placeholder="Title (optional)..."
                 title={title || "Title"}
-                className="w-full text-left text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 bg-transparent outline-none rounded-md px-2 py-0.5 focus:bg-black/5 dark:focus:bg-white/5 border-b border-transparent focus:border-brand-500/40 transition-all truncate"
+                className="w-full text-left text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 bg-transparent outline-none rounded-md px-2 py-0.5 focus:bg-black/5 dark:focus:bg-white/5 border-b border-transparent focus:border-brand-500/40 transition-all"
               />
             </div>
 
-            {/* Center: Absolutely Centered Color Swatches Panel */}
-            <div className="absolute left-1/2 -translate-x-1/2 hidden sm:flex items-center gap-1.5 bg-white/80 dark:bg-black/40 px-3 py-1 rounded-full border border-black/[0.05] dark:border-white/[0.08] shadow-xs pointer-events-auto">
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mr-1 uppercase">Color</span>
-              {NOTE_COLORS.map((c) => (
-                <button
-                  key={c.name}
-                  title={`Color: ${c.label}`}
-                  onClick={() => {
-                    setColor(c.name);
-                    hasUserEdited.current = true;
-                  }}
-                  className="w-4 h-4 rounded-full border transition-transform hover:scale-125 focus:outline-none cursor-pointer"
-                  style={{
-                    backgroundColor: isDark ? c.darkSwatch : c.swatch,
-                    borderColor: color === c.name ? "#7c3aed" : "rgba(0,0,0,0.15)",
-                    transform: color === c.name ? "scale(1.25)" : undefined,
-                  }}
-                />
-              ))}
-            </div>
+            {/* Far Right: Window Options & Star Toggle */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Star toggle button */}
+              <button
+                onClick={() => {
+                  setStarred(!starred);
+                  if (isLoadedRef.current) hasUserEdited.current = true;
+                }}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  starred
+                    ? "text-yellow-400 bg-yellow-400/10 hover:bg-yellow-400/20"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                }`}
+                title={starred ? "Unstar note" : "Star note"}
+              >
+                <Star size={15} className={starred ? "fill-yellow-400" : ""} />
+              </button>
 
-            {/* Far Right: Window Options (Reset Size, Maximize/Restore, Close) */}
-            <div className="flex items-center gap-1 shrink-0">
               {/* Reset Window Size (Shown when resized or maximized) */}
               {(isMaximized || windowDimensions.width !== 880 || windowDimensions.height !== 640) && (
                 <button
@@ -736,6 +762,101 @@ const EditNote = ({ id, onClose }) => {
                 
                 {/* Integrated Tools on Far-Right of Quill Toolbar Ribbon */}
                 <div className="absolute top-1.5 right-2.5 z-30 flex items-center gap-1.5">
+                  {/* Notebook Selector Menu */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setNotebookMenuOpen(!notebookMenuOpen)}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-white dark:bg-[#222533] hover:bg-gray-100 dark:hover:bg-[#2a2e3f] text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/10 shadow-xs transition-all cursor-pointer"
+                      title="Assign or change Notebook"
+                    >
+                      <Folder size={14} className="text-purple-400" />
+                      <span className="text-[11px] font-semibold truncate max-w-[110px]">
+                        {notebook || "Notebook"}
+                      </span>
+                      <ChevronDown size={11} className={`transition-transform text-gray-400 ${notebookMenuOpen ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {notebookMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setNotebookMenuOpen(false)} />
+                        <div className="absolute right-0 top-full mt-1.5 z-50 w-52 rounded-lg bg-white dark:bg-[#1c1e28] border border-gray-200 dark:border-white/10 shadow-2xl py-1 animate-scale-in text-xs font-medium text-gray-700 dark:text-gray-200">
+                          <button
+                            onClick={() => {
+                              setNotebook(null);
+                              setNotebookMenuOpen(false);
+                              hasUserEdited.current = true;
+                              saveImmediately(null, null);
+                            }}
+                            className={`w-full px-3 py-1.5 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-white/5 text-left cursor-pointer ${
+                              !notebook ? "font-bold text-brand-500 bg-brand-500/10" : ""
+                            }`}
+                          >
+                            <span className="italic text-gray-400">None (General)</span>
+                          </button>
+                          {(effectiveNotebooks || []).map((nb) => {
+                            const targetNb = nb.name || nb.id;
+                            const isSelected = notebook === targetNb;
+                            return (
+                              <button
+                                key={nb.id || nb.name}
+                                onClick={() => {
+                                  setNotebook(targetNb);
+                                  setNotebookMenuOpen(false);
+                                  hasUserEdited.current = true;
+                                  saveImmediately(null, targetNb);
+                                }}
+                                className={`w-full px-3 py-1.5 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-white/5 text-left cursor-pointer ${
+                                  isSelected ? "font-bold text-brand-500 bg-brand-500/10" : ""
+                                }`}
+                              >
+                                <Folder size={13} className="text-purple-400 shrink-0" />
+                                <span className="truncate">{nb.name || nb.id}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Note Color Theme Selector */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setColorMenuOpen(!colorMenuOpen)}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-white dark:bg-[#222533] hover:bg-gray-100 dark:hover:bg-[#2a2e3f] text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/10 shadow-xs transition-all cursor-pointer"
+                      title="Choose Note Theme Color"
+                    >
+                      <Palette size={14} className="text-amber-400" />
+                      <span className="text-[11px] font-semibold capitalize">{color || "Theme"}</span>
+                      <ChevronDown size={11} className={`transition-transform text-gray-400 ${colorMenuOpen ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {colorMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setColorMenuOpen(false)} />
+                        <div className="absolute right-0 top-full mt-1.5 z-50 p-2 rounded-xl bg-white dark:bg-[#1c1e28] border border-gray-200 dark:border-white/10 shadow-2xl animate-scale-in flex items-center gap-2">
+                          {NOTE_COLORS.map((c) => (
+                            <button
+                              key={c.name}
+                              title={`Theme: ${c.label}`}
+                              onClick={() => {
+                                setColor(c.name);
+                                setColorMenuOpen(false);
+                                if (isLoadedRef.current) hasUserEdited.current = true;
+                              }}
+                              className="w-5 h-5 rounded-full border transition-transform hover:scale-125 focus:outline-none cursor-pointer shadow-xs"
+                              style={{
+                                backgroundColor: isDark ? c.darkSwatch : c.swatch,
+                                borderColor: color === c.name ? "#7c3aed" : "rgba(0,0,0,0.15)",
+                                transform: color === c.name ? "scale(1.25)" : undefined,
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
                   {/* Paste Options Dropdown Menu */}
                   <div ref={pasteMenuRef} className="relative">
                     <button
@@ -987,13 +1108,7 @@ const EditNote = ({ id, onClose }) => {
                   key={`footer-${att.url}-${idx}`}
                   attachment={att}
                   onRemove={removeAttachment}
-                  onPreview={(a) => {
-                    if (isImage({ type: a.type, name: a.name })) {
-                      setPreviewImg(a);
-                    } else {
-                      window.open(a.url, "_blank");
-                    }
-                  }}
+                  onPreview={(a) => setModalPreviewFile(a)}
                 />
               ))}
 
@@ -1128,6 +1243,13 @@ const EditNote = ({ id, onClose }) => {
           </div>
         </div>
       )}
+
+      {/* File Preview Modal for Attachments inside Note */}
+      <FilePreviewModal
+        file={modalPreviewFile}
+        isOpen={Boolean(modalPreviewFile)}
+        onClose={() => setModalPreviewFile(null)}
+      />
     </>
   );
 };
