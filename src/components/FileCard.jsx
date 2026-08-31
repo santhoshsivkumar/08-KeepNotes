@@ -46,7 +46,7 @@ const FileCard = ({
 
   return (
     <div
-      className="group bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.06] rounded-2xl hover:border-brand-500/50 transition-all duration-200 p-4 flex flex-col justify-between h-full hover:-translate-y-0.5 shadow-sm"
+      className="group bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.06] rounded-2xl hover:border-brand-500/50 transition-all duration-200 p-3 sm:p-4 flex flex-col justify-between h-full hover:-translate-y-0.5 shadow-sm min-w-0 max-w-full overflow-hidden"
     >
       <div>
         {/* Top row icon & actions (Eye Preview + Download) */}

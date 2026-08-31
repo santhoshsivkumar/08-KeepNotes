@@ -57,19 +57,22 @@
 }
 
 /* Base resets & typography */
-html {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  scroll-behavior: smooth;
-  -webkit-font-smoothing: antialiased;
+html, body, #root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden !important;
+  box-sizing: border-box;
 }
 
 body {
   background-color: var(--surface-bg);
   color: var(--text-primary);
   min-height: 100vh;
-  overflow-x: hidden;
   transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.dark body {
+  background-color: #0d0f14;
 }
 
 /* Quill Editor Styles — container/border base */

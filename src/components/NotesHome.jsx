@@ -802,7 +802,6 @@ const NotesHome = () => {
         onAddNotebook={handleAddNotebook}
         onDeleteNotebook={handleDeleteNotebook}
         onNewNote={() => handleOpenNewNoteModal()}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         onToggleTheme={toggle}
         isDark={isDark}
         onOpenSettings={() => setIsSettingsOpen(true)}
@@ -836,7 +835,7 @@ const NotesHome = () => {
         </div>
 
         {/* ── Main View Container ────────────────────────── */}
-        <main className="px-4 sm:px-8 py-6 flex-1">
+        <main className="px-3 sm:px-8 py-4 sm:py-6 flex-1 min-w-0 w-full max-w-full overflow-x-hidden">
           {/* ── GLOBAL LOADING SPINNER FOR ALL NON-FILES TABS ──── */}
           {loading && activeNav !== "files" && (
             <div className="min-h-[calc(100vh-200px)] flex flex-col items-center justify-center -mt-8 animate-fade-in">
@@ -985,7 +984,7 @@ const NotesHome = () => {
                 {(activeNav === "allNotes" || activeNotebook) && (displayedNotes.length > 0 || notesSearch.trim()) && (
                   <div className="flex items-center gap-3 flex-wrap">
                     {/* Search Input */}
-                    <div className="relative min-w-[200px] flex-1 sm:flex-initial">
+                    <div className="relative w-full sm:w-auto sm:min-w-[200px] flex-1">
                       <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                       <input
                         type="text"

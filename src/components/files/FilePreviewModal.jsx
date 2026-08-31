@@ -107,7 +107,7 @@ const FilePreviewModal = ({ file, isOpen, onClose, onOpenNote }) => {
             title="Back to side preview pane"
           >
             <ArrowLeft size={14} />
-            <span>Back to Preview</span>
+            <span>Back</span>
           </button>
 
           <div className="min-w-0">

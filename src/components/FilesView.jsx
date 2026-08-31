@@ -529,7 +529,7 @@ const FilesView = ({
           }`}
         >
           {filesList.map((file, idx) => (
-            <div key={`${file.url}-${idx}`}>
+            <div key={`${file.url}-${idx}`} className="min-w-0">
               <FileCard file={file} onPreview={handlePreviewFile} onOpenNote={onOpenNote} />
             </div>
           ))}
@@ -607,7 +607,7 @@ const FilesView = ({
 
   return (
     <div
-      className="relative min-h-[calc(100vh-120px)]"
+      className="relative min-h-[calc(100vh-120px)] w-full min-w-0 max-w-full overflow-x-hidden"
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -644,146 +644,81 @@ const FilesView = ({
       )}
 
       {/* ── Context Header + Count Badge & Toolbar ── */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 shrink-0">
-          {isSidebarCollapsed && (
-            <button
-              onClick={onToggleSidebar}
-              className="hidden lg:flex p-1.5 rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] transition-all cursor-pointer mr-0.5"
-              title="Open Sidebar"
-            >
-              <Menu size={18} />
-            </button>
-          )}
-          Files
-          <span className="text-xs font-semibold text-gray-500 bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 rounded-full font-mono">
-            {allFiles.length}
-          </span>
-        </h2>
-
-        {/* Action Controls Toolbar */}
-        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-          {/* Quick Search Input */}
-          <div className="relative min-w-[140px] sm:min-w-[160px] flex-1 sm:flex-initial shrink-0">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search files..."
-              className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.06] rounded-xl text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors shadow-xs"
-            />
-            {searchQuery && (
+      <div className="mb-6 space-y-2.5 relative z-40">
+        {/* Row 1: Header Title + View Toggle (Mobile: Title + View Toggle; Desktop: Title + All Actions) */}
+        <div className="flex items-center justify-between gap-2 w-full">
+          <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 shrink-0">
+            {isSidebarCollapsed && (
               <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs"
+                onClick={onToggleSidebar}
+                className="hidden lg:flex p-1.5 rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] transition-all cursor-pointer mr-0.5"
+                title="Open Sidebar"
               >
-                ×
+                <Menu size={18} />
               </button>
             )}
-          </div>
+            Files
+            <span className="text-xs font-semibold text-gray-500 bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 rounded-full font-mono">
+              {allFiles.length}
+            </span>
+          </h2>
 
-          {/* Upload Button */}
-          <button
-            onClick={onUploadFile}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold rounded-xl shadow-brand transition-all cursor-pointer shrink-0"
-            title="Upload new file"
-          >
-            <Upload size={14} />
-            <span className="hidden sm:inline">Upload File</span>
-          </button>
-
-          {/* New Independent Folder Button */}
-          <button
-            onClick={() => {
-              const name = prompt("Enter new folder name:");
-              if (name && name.trim() && onCreateFolder) {
-                onCreateFolder(name.trim());
-              }
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#16181f] hover:bg-gray-100 dark:hover:bg-white/[0.06] border border-gray-200 dark:border-white/[0.06] text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-xl transition-all cursor-pointer shrink-0 shadow-xs"
-            title="Create independent folder"
-          >
-            <FolderPlus size={14} className="text-amber-400" />
-            <span className="hidden sm:inline">New Folder</span>
-          </button>
-
-          {/* Grouping Dropdown Trigger */}
-          <div className="relative shrink-0">
+          {/* Desktop Actions (shown on sm and up) */}
+          <div className="hidden sm:flex items-center gap-2 shrink-0 ml-auto">
+            {/* Upload Button */}
             <button
-              onClick={() => {
-                setShowGroupMenu(!showGroupMenu);
-                setShowSortMenu(false);
-              }}
-              className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-[#16181f] hover:bg-gray-100 dark:hover:bg-white/[0.06] border border-gray-200 dark:border-white/[0.06] text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-xl transition-all cursor-pointer shadow-xs"
+              onClick={onUploadFile}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold rounded-xl shadow-brand transition-all cursor-pointer shrink-0"
+              title="Upload new file"
             >
-              <span className="text-gray-400 font-normal">Group:</span>
-              <span className="max-w-[110px] truncate">{groupLabels[groupBy]}</span>
-              <ChevronDown size={13} className="text-gray-400 ml-0.5 shrink-0" />
+              <Upload size={14} />
+              <span>Upload File</span>
             </button>
 
-            {showGroupMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.08] rounded-xl shadow-xl py-1 z-30 animate-fade-in">
-                {Object.entries(groupLabels).map(([key, label]) => (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      setGroupBy(key);
-                      setShowGroupMenu(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer ${
-                      groupBy === key
-                        ? "text-brand-500 dark:text-brand-400 font-semibold"
-                        : "text-gray-700 dark:text-gray-300"
-                    }`}
-                  >
-                    <span>{label}</span>
-                    {groupBy === key && <span className="text-brand-500 font-bold">✓</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Sort Dropdown Trigger */}
-          <div className="relative shrink-0">
+            {/* New Independent Folder Button */}
             <button
               onClick={() => {
-                setShowSortMenu(!showSortMenu);
-                setShowGroupMenu(false);
+                const name = prompt("Enter new folder name:");
+                if (name && name.trim() && onCreateFolder) {
+                  onCreateFolder(name.trim());
+                }
               }}
-              className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-[#16181f] hover:bg-gray-100 dark:hover:bg-white/[0.06] border border-gray-200 dark:border-white/[0.06] text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-xl transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#16181f] hover:bg-gray-100 dark:hover:bg-white/[0.06] border border-gray-200 dark:border-white/[0.06] text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-xl transition-all cursor-pointer shrink-0 shadow-xs"
+              title="Create independent folder"
             >
-              <span className="text-gray-400 font-normal">Sort:</span>
-              <span className="max-w-[110px] truncate">{sortLabels[sortBy]}</span>
-              <ChevronDown size={13} className="text-gray-400 ml-0.5 shrink-0" />
+              <FolderPlus size={14} className="text-amber-400" />
+              <span>New Folder</span>
             </button>
 
-            {showSortMenu && (
-              <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.08] rounded-xl shadow-xl py-1 z-30 animate-fade-in">
-                {Object.entries(sortLabels).map(([key, label]) => (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      setSortBy(key);
-                      setShowSortMenu(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer ${
-                      sortBy === key
-                        ? "text-brand-500 dark:text-brand-400 font-semibold"
-                        : "text-gray-700 dark:text-gray-300"
-                    }`}
-                  >
-                    <span>{label}</span>
-                    {sortBy === key && <span className="text-brand-500 font-bold">✓</span>}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* View Mode Toggle Switch */}
+            <div className="flex items-center bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.06] rounded-xl p-0.5 shrink-0 shadow-xs">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  viewMode === "grid"
+                    ? "bg-brand-500 text-white shadow-brand"
+                    : "text-gray-400 hover:text-gray-700 dark:hover:text-white"
+                }`}
+                title="Grid view"
+              >
+                <LayoutGrid size={14} />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  viewMode === "list"
+                    ? "bg-brand-500 text-white shadow-brand"
+                    : "text-gray-400 hover:text-gray-700 dark:hover:text-white"
+                }`}
+                title="List view"
+              >
+                <List size={14} />
+              </button>
+            </div>
           </div>
 
-          {/* View Mode Toggle Switch (Grid vs List) */}
-          <div className="flex items-center bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.06] rounded-xl p-0.5 shrink-0 shadow-xs">
+          {/* Mobile View Toggle Switch (shown only on < sm) */}
+          <div className="flex sm:hidden items-center bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.06] rounded-xl p-0.5 shrink-0 shadow-xs">
             <button
               onClick={() => setViewMode("grid")}
               className={`p-1.5 rounded-lg transition-all cursor-pointer ${
@@ -806,6 +741,132 @@ const FilesView = ({
             >
               <List size={14} />
             </button>
+          </div>
+        </div>
+
+        {/* Mobile Primary Actions Row (Upload & New Folder side-by-side, 50% width each) */}
+        <div className="grid sm:hidden grid-cols-2 gap-2 w-full">
+          <button
+            onClick={onUploadFile}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold rounded-xl shadow-brand transition-all cursor-pointer"
+            title="Upload file"
+          >
+            <Upload size={14} />
+            <span>Upload</span>
+          </button>
+
+          <button
+            onClick={() => {
+              const name = prompt("Enter new folder name:");
+              if (name && name.trim() && onCreateFolder) {
+                onCreateFolder(name.trim());
+              }
+            }}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-[#16181f] hover:bg-gray-100 dark:hover:bg-white/[0.06] border border-gray-200 dark:border-white/[0.06] text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-xl transition-all cursor-pointer shadow-xs"
+            title="Create independent folder"
+          >
+            <FolderPlus size={14} className="text-amber-400" />
+            <span>New Folder</span>
+          </button>
+        </div>
+
+        {/* Row 2: Search Input + Desktop Group & Sort Filters */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full">
+          {/* Quick Search Input */}
+          <div className="relative flex-1 w-full min-w-0">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search files..."
+              className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.06] rounded-xl text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors shadow-xs"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Group & Sort Dropdowns */}
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto shrink-0">
+            {/* Grouping Dropdown Trigger */}
+            <div className="relative z-50">
+              <button
+                onClick={() => {
+                  setShowGroupMenu(!showGroupMenu);
+                  setShowSortMenu(false);
+                }}
+                className="w-full sm:w-auto flex items-center justify-between gap-1 px-3 py-1.5 bg-white dark:bg-[#16181f] hover:bg-gray-100 dark:hover:bg-white/[0.06] border border-gray-200 dark:border-white/[0.06] text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-xl transition-all cursor-pointer shadow-xs"
+              >
+                <span className="text-gray-400 font-normal">Group:</span>
+                <span className="max-w-[70px] sm:max-w-[100px] truncate">{groupLabels[groupBy]}</span>
+                <ChevronDown size={13} className="text-gray-400 ml-0.5 shrink-0" />
+              </button>
+
+              {showGroupMenu && (
+                <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-48 max-w-[calc(100vw-32px)] bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.12] rounded-xl shadow-2xl py-1 z-[100] animate-fade-in">
+                  {Object.entries(groupLabels).map(([key, label]) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setGroupBy(key);
+                        setShowGroupMenu(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer ${
+                        groupBy === key
+                          ? "text-brand-500 dark:text-brand-400 font-semibold"
+                          : "text-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      <span>{label}</span>
+                      {groupBy === key && <span className="text-brand-500 font-bold">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Sort Dropdown Trigger */}
+            <div className="relative z-50">
+              <button
+                onClick={() => {
+                  setShowSortMenu(!showSortMenu);
+                  setShowGroupMenu(false);
+                }}
+                className="w-full sm:w-auto flex items-center justify-between gap-1 px-3 py-1.5 bg-white dark:bg-[#16181f] hover:bg-gray-100 dark:hover:bg-white/[0.06] border border-gray-200 dark:border-white/[0.06] text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-xl transition-all cursor-pointer shadow-xs"
+              >
+                <span className="text-gray-400 font-normal">Sort:</span>
+                <span className="max-w-[70px] sm:max-w-[100px] truncate">{sortLabels[sortBy]}</span>
+                <ChevronDown size={13} className="text-gray-400 ml-0.5 shrink-0" />
+              </button>
+
+              {showSortMenu && (
+                <div className="absolute right-0 top-full mt-1.5 w-44 max-w-[calc(100vw-32px)] bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.12] rounded-xl shadow-2xl py-1 z-[100] animate-fade-in">
+                  {Object.entries(sortLabels).map(([key, label]) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setSortBy(key);
+                        setShowSortMenu(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer ${
+                        sortBy === key
+                          ? "text-brand-500 dark:text-brand-400 font-semibold"
+                          : "text-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      <span>{label}</span>
+                      {sortBy === key && <span className="text-brand-500 font-bold">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -847,7 +908,7 @@ const FilesView = ({
       </div>
 
       {/* ── Relationship Category Filter Pills ────── */}
-      <div className="mb-4 flex items-center gap-2 overflow-x-auto sidebar-scroll pb-1">
+      <div className="mb-4 flex flex-wrap items-center gap-2 max-w-full">
         <button
           onClick={() => setRelFilter("all")}
           className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shrink-0 ${
@@ -883,8 +944,8 @@ const FilesView = ({
       </div>
 
       {/* ── File Extension Type Filter Pills ────── */}
-      <div className="mb-6 flex items-center gap-2 overflow-x-auto sidebar-scroll pb-1">
-        {TYPE_FILTERS.map((tf) => {
+      <div className="mb-6 flex flex-wrap items-center gap-2 max-w-full">
+        {TYPE_FILTERS.filter((tf) => tf.key === "all" || (typeCounts[tf.key] || 0) > 0).map((tf) => {
           const count = typeCounts[tf.key] || 0;
           const isActive = typeFilter === tf.key;
           return (
@@ -945,7 +1006,7 @@ const FilesView = ({
                       }}
                       className="px-4 py-3 rounded-xl bg-white dark:bg-[#16181f] hover:bg-gray-100 dark:hover:bg-white/[0.06] border border-gray-200 dark:border-white/[0.06] flex items-center justify-between cursor-pointer transition-all shadow-xs"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-3 min-w-0 flex-1 mr-3">
                         {groupBy !== "foldersOnly" && (
                           <ChevronRight
                             size={15}
@@ -964,8 +1025,8 @@ const FilesView = ({
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-500 font-mono bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-1 rounded-lg">
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-xs text-gray-500 font-mono bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-1 rounded-lg whitespace-nowrap shrink-0">
                           {groupItems.length} {groupItems.length === 1 ? "item" : "items"}
                         </span>
                       </div>
@@ -973,7 +1034,7 @@ const FilesView = ({
 
                     {/* Indented Contained Files Tree View (Hidden in Folders Only root view) */}
                     {!isCollapsed && groupBy !== "foldersOnly" && (
-                      <div className="ml-7 pl-3 border-l-2 border-amber-400/20 dark:border-amber-400/10 space-y-2 pt-2 pb-1 animate-fade-in">
+                      <div className="ml-2 sm:ml-6 pl-2 sm:pl-3 border-l-2 border-amber-400/20 dark:border-amber-400/10 space-y-2 pt-2 pb-1 animate-fade-in">
                         {renderFileList(groupItems)}
                       </div>
                     )}
@@ -995,7 +1056,7 @@ const FilesView = ({
               maxWidth: "45%",
               height: paneHeight ? `${paneHeight}px` : "calc(100vh - 160px)",
             }}
-            className="relative shrink-0 bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.08] rounded-2xl p-3 flex flex-col sticky top-4 shadow-xl overflow-hidden animate-fade-in group/pane select-none"
+            className="hidden lg:flex relative shrink-0 bg-white dark:bg-[#16181f] border border-gray-200 dark:border-white/[0.08] rounded-2xl p-3 flex-col sticky top-4 shadow-xl overflow-hidden animate-fade-in group/pane select-none"
           >
             {/* ── Left Drag Handle (Resize X Width) ────────────────────────── */}
             <div

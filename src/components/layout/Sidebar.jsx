@@ -47,7 +47,7 @@ const Sidebar = ({
       {/* Mobile Drawer Overlay Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[90] lg:hidden animate-fade-in"
+          className="fixed inset-0 bg-black/75 backdrop-blur-xs z-[90] lg:hidden animate-fade-in"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -202,33 +202,33 @@ const Sidebar = ({
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06]"
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${notebook.color || "bg-gray-500"}`} />
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: notebook.color || "#8b5cf6" }}
+                    />
                     <span className="truncate">{notebook.name}</span>
                   </div>
 
-                  {/* Delete Notebook Button (visible on group hover) */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDeleteNotebook?.(notebook);
+                      if (onDeleteNotebook) onDeleteNotebook(notebook.id);
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-all cursor-pointer shrink-0"
-                    title={`Delete notebook "${notebook.name}"`}
-                    aria-label={`Delete notebook ${notebook.name}`}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-400 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer"
+                    title="Delete notebook"
                   >
-                    <Trash2 size={13} />
+                    <Trash2 size={12} />
                   </button>
                 </div>
               ))}
 
               <div
                 onClick={onAddNotebook}
-                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onAddNotebook?.()}
-                className="px-3 py-2 text-sm text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-3 cursor-pointer transition-all"
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onAddNotebook()}
                 role="button"
                 tabIndex={0}
-                aria-label="Add notebook"
+                className="px-3 py-2 text-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-3 cursor-pointer transition-all"
               >
                 <Plus size={16} />
                 <span>Add Notebook</span>
@@ -238,15 +238,15 @@ const Sidebar = ({
         </div>
 
         {/* Bottom Sidebar Footer Controls */}
-        <div className="p-3 border-t border-gray-200 dark:border-white/[0.06] shrink-0 flex items-center justify-between gap-2">
+        <div className="px-3 py-3 border-t border-gray-200 dark:border-white/[0.06] shrink-0 flex items-center justify-between gap-1.5">
           {/* Theme Toggle Button */}
           <button
             onClick={onToggleTheme}
-            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-black/[0.03] dark:bg-white/[0.04] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-black/[0.05] dark:border-white/[0.06] transition-all cursor-pointer select-none"
+            className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-black/[0.03] dark:bg-white/[0.04] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-black/[0.05] dark:border-white/[0.06] transition-all cursor-pointer select-none min-w-0"
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
-            {isDark ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} className="text-brand-500" />}
-            <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+            {isDark ? <Sun size={15} className="text-amber-400 shrink-0" /> : <Moon size={15} className="text-brand-500 shrink-0" />}
+            <span className="truncate">{isDark ? "Light Mode" : "Dark Mode"}</span>
           </button>
 
           {/* Lock App Button */}

@@ -119,7 +119,7 @@ const SettingsModal = ({ isOpen, onClose, docsData = [], onImportNotes }) => {
         </div>
 
         {/* Mobile Horizontal Tabs (< sm screens) */}
-        <div className="flex sm:hidden overflow-x-auto gap-1 p-2 bg-[#0d0f14] border-b border-white/[0.06] shrink-0 sidebar-scroll">
+        <div className="flex sm:hidden flex-wrap items-center gap-1.5 p-2 bg-[#0d0f14] border-b border-white/[0.06] shrink-0">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -127,7 +127,7 @@ const SettingsModal = ({ isOpen, onClose, docsData = [], onImportNotes }) => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
                     ? "bg-brand-500 text-white shadow-brand"
                     : "text-gray-400 hover:text-white hover:bg-white/[0.06]"
